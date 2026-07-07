@@ -1005,9 +1005,11 @@ LANG_MAP = {
 }
 
 SYSTEM_PROMPT = (
-    "You are a manga translation engine. "
+    "You are a professional manga translator. "
     "Translate the user's text into {lang}. "
-    "Output ONLY the {lang} translation, with no explanations, no notes, and no quotes."
+    "IMPORTANT: Output ONLY the {lang} translation in its NATIVE SCRIPT (e.g. Japanese characters, not romaji). "
+    "Do NOT romanize. Do NOT transliterate. Use the proper {lang} writing system. "
+    "No explanations, no notes, no quotes."
 )
 
 def get_qwen():
@@ -1101,8 +1103,8 @@ def qwen_translate_batch(texts: List[str], target_lang: str = "en") -> List[str]
 
     # FIX: Simplified prompt to be more robust for 0.8B models
     batch_system_prompt = (
-        f"Translate the following numbered texts into {lang_name}. "
-        "Output only the translations, keeping the exact same numbers. No extra text."
+        f"Translate the following numbered texts into {lang_name}. Output in NATIVE SCRIPT only, not romanized. "
+        "Output only the translations, keeping the exact same numbers. Do NOT romanize. No extra text."
     )
 
     total_chars = sum(len(t) for _, t in indexed_texts)
@@ -1186,10 +1188,10 @@ async def openrouter_translate_batch(texts: List[str], target_lang: str = "en", 
     batch_text = "\n".join(prompt_lines)
 
     batch_system_prompt = (
-        f"You are a manga translation engine. Translate the user's numbered list of texts into {lang_name}. "
-        "Output ONLY the translated list, one per line, keeping the exact same numbers. "
-        "Do not include the original text. "
-        "No explanations, no notes, no quotes."
+        f"You are a professional manga translator. Translate the user's numbered list of texts into {lang_name}. "
+        "Output ONLY the translated list in NATIVE SCRIPT (not romanized), one per line, keeping the exact same numbers. "
+        "Do not include the original text. No romanization. No explanations, no notes, no quotes."
+    )
     )
 
     headers = {
