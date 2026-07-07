@@ -440,6 +440,11 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
                         val translatedBytes = baos.toByteArray()
                         page.chapter.setTranslatedPage(page.index, translatedBytes)
                         page.stream = { java.io.ByteArrayInputStream(translatedBytes) }
+                        // Reset status to trigger holder reload
+                        page.status =
+                            eu.kanade.tachiyomi.source.model.Page.State.LOAD_PAGE
+                        page.status =
+                            eu.kanade.tachiyomi.source.model.Page.State.READY
                         translatedPages.add(page.index)
 
                         val pos = adapter.items.indexOf(page)

@@ -95,7 +95,7 @@ class PreferencesHelper(val context: Context, val preferenceStore: PreferenceSto
 
     fun colorFilterMode() = preferenceStore.getInt(Keys.colorFilterMode, 0)
 
-    fun defaultReadingMode() = preferenceStore.getInt(Keys.defaultReadingMode, ReadingModeType.RIGHT_TO_LEFT.flagValue)
+    fun defaultReadingMode() = preferenceStore.getInt(Keys.defaultReadingMode, ReadingModeType.VERTICAL.flagValue)
 
     fun defaultOrientationType() = preferenceStore.getInt(Keys.defaultOrientationType, OrientationType.FREE.flagValue)
 

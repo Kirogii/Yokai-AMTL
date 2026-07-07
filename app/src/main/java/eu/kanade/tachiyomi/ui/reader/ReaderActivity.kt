@@ -100,6 +100,7 @@ import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.settings.OrientationType
 import eu.kanade.tachiyomi.ui.reader.settings.PageLayout
 import eu.kanade.tachiyomi.ui.reader.settings.ReaderBottomButton
+import yokai.domain.ui.settings.AiTranslationPreferences
 import eu.kanade.tachiyomi.ui.reader.settings.ReadingModeType
 import eu.kanade.tachiyomi.ui.reader.settings.TabbedReaderSettingsSheet
 import eu.kanade.tachiyomi.ui.reader.viewer.BaseViewer
@@ -252,6 +253,7 @@ class ReaderActivity : BaseActivity<ReaderActivityBinding>() {
 
     private val readerPreferences: ReaderPreferences by injectLazy()
     private val basePreferences: BasePreferences by injectLazy()
+    private val aiPrefs: AiTranslationPreferences by injectLazy()
 
     companion object {
 
@@ -1248,6 +1250,20 @@ class ReaderActivity : BaseActivity<ReaderActivityBinding>() {
             ) {
                 setAction(MR.strings.use_default) {
                     viewModel.setMangaReadingMode(0)
+                }
+            }
+        }
+
+
+        // AMTL disclaimer: only works reliably on VERTICAL reading mode
+        val serverUrl = aiPrefs.serverUrl().get()
+        if (serverUrl.isNotBlank() && mangaViewer != ReadingModeType.VERTICAL.flagValue) {
+            binding.readerLayout.snack(
+                "AI Translation only works on Vertical reading mode. Switch to Vertical in the reader menu.",
+                6000,
+            ) {
+                setAction("Switch to Vertical") {
+                    viewModel.setMangaReadingMode(ReadingModeType.VERTICAL.flagValue)
                 }
             }
         }

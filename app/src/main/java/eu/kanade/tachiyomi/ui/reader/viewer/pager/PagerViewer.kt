@@ -627,6 +627,11 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
 
                         page.chapter.setTranslatedPage(page.index, translatedBytes)
                         page.stream = { ByteArrayInputStream(translatedBytes) }
+                        // Reset status to trigger PagerPageHolder reload
+                        page.status =
+                            eu.kanade.tachiyomi.source.model.Page.State.LOAD_PAGE
+                        page.status =
+                            eu.kanade.tachiyomi.source.model.Page.State.READY
 
                         stubView.setStatus("Translated page ${page.number}")
                     },
