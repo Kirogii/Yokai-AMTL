@@ -1,0 +1,12 @@
+.gradle
+/local.properties
+/.idea/workspace.xml
+.DS_Store
+/build
+.idea/
+*iml
+*.iml
+*/build
+*/*/build
+.kotlin/
+kls_database.db
