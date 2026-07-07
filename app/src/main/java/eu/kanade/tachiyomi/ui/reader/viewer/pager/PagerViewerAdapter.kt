@@ -123,7 +123,7 @@ class PagerViewerAdapter(private val viewer: PagerViewer) : ViewPagerAdapter() {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                 )
                 view.onTranslateClicked = {
-                    viewer.translateCurrentPage()
+                    viewer.translateAllPages()
                 }
                 (view as View)
             }

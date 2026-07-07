@@ -95,6 +95,13 @@ class SettingsMainController : SettingsLegacyController(), FloatingSearchInterfa
                 context.toast("You're entering beta version of 'Data and storage'")
             }
         }
+
+        preference {
+            iconRes = R.drawable.ic_translate_24dp
+            iconTint = tintColor
+            title = "AI Translation"
+            onClick { navigateTo(SettingsAiTranslationController()) }
+        }
         preference {
             iconRes = R.drawable.ic_security_24dp
             iconTint = tintColor

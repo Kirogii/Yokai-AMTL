@@ -4,25 +4,28 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.Base64
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.api.get
 import yokai.domain.ui.settings.AiTranslationPreferences
 import java.io.ByteArrayOutputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
 /**
  * Handles communication with the FastAPI translation server.
- * Mirrors the extension's background.js content.js translation flow.
+ * Mirrors the extension's background.js 3-step translation flow:
+ *   1. POST /v1/translate (multipart form-data) → job_id
+ *   2. GET /v1/translate/{job_id} poll for status
+ *   3. POST /v1/translate/{job_id}/image → rendered PNG
  */
 class TranslationService {
 
     private val prefs: AiTranslationPreferences = Injekt.get()
 
-    /**
-     * Verifies server connectivity by hitting /version
-     */
+    /** Verify server connectivity by hitting /version */
     suspend fun verifyServer(url: String): Result<String> = withContext(Dispatchers.IO) {
         try {
             val connection = URL("${url.trimEnd('/')}/version").openConnection() as HttpURLConnection
@@ -44,98 +47,156 @@ class TranslationService {
     }
 
     /**
-     * Translates a single bitmap image.
-     * Returns the translated bitmap, or null on failure.
+     * Translates a single bitmap image using the 3-step job flow:
+     *   1. POST /v1/translate with multipart form-data
+     *   2. Poll GET /v1/translate/{job_id} until completed/failed
+     *   3. POST /v1/translate/{job_id}/image to get the rendered PNG
      */
     suspend fun translateImage(
         bitmap: Bitmap,
         ocrLang: String = prefs.ocrSourceLang().get(),
         targetLang: String = prefs.targetLanguage().get(),
-        colorize: Boolean = prefs.colorize().get(),
-        ocrMode: String = prefs.ocrEngine().get(),
-        inpaintMode: String = prefs.inpaintMode().get(),
+        inpaint: Boolean = true,
     ): Result<Bitmap> = withContext(Dispatchers.IO) {
         try {
             val serverUrl = prefs.serverUrl().get().trimEnd('/')
-            val modelType = prefs.translationProvider().get()
 
-            // Convert bitmap to base64 JPEG (smaller than PNG for upload)
-            val byteStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteStream)
-            val base64Image = Base64.encodeToString(byteStream.toByteArray(), Base64.NO_WRAP)
+            // Step 1: Upload image as multipart form-data
+            val jobId = createTranslationJob(serverUrl, bitmap, targetLang, ocrLang, inpaint)
+                ?: return@withContext Result.failure(Exception("Failed to create translation job"))
 
-            // Build request body — matches the extension's /v1/translate format
-            val requestBody = buildString {
-                append("{")
-                append("\"image_b64\":\"$base64Image\",")
-                append("\"ocr_lang\":\"$ocrLang\",")
-                append("\"target_lang\":\"$targetLang\",")
-                append("\"colorize\":$colorize,")
-                append("\"ocr_mode\":\"$ocrMode\",")
-                append("\"inpaint_mode\":\"$inpaintMode\",")
-                append("\"model_type\":\"$modelType\"")
-                if (modelType == "openrouter") {
-                    val model = prefs.openrouterModel().get()
-                    val apiKey = prefs.openrouterApiKey().get()
-                    if (model.isNotBlank()) {
-                        append(",\"openrouter_model\":\"$model\"")
-                    }
-                    if (apiKey.isNotBlank()) {
-                        append(",\"openrouter_api_key\":\"$apiKey\"")
-                    }
-                }
-                append("}")
+            // Step 2: Poll for completion
+            val completed = pollJobStatus(serverUrl, jobId)
+            if (!completed) {
+                return@withContext Result.failure(Exception("Translation job $jobId failed or timed out"))
             }
 
-            val connection = URL("$serverUrl/v1/translate").openConnection() as HttpURLConnection
-            connection.connectTimeout = 120000  // translation can take time
-            connection.readTimeout = 120000
-            connection.requestMethod = "POST"
-            connection.doOutput = true
-            connection.setRequestProperty("Content-Type", "application/json")
+            // Step 3: Fetch the rendered translated image
+            val translatedBitmap = fetchTranslatedImage(serverUrl, jobId)
+                ?: return@withContext Result.failure(Exception("Failed to fetch translated image"))
 
-            connection.outputStream.use { os ->
-                os.write(requestBody.toByteArray(Charsets.UTF_8))
-            }
-
-            val code = connection.responseCode
-            if (code == 200) {
-                val response = connection.inputStream.bufferedReader().readText()
-                connection.disconnect()
-
-                // Parse response: {"image_b64": "..."} or {"result_b64": "..."}
-                val base64Result = extractJsonString(response, "image_b64")
-                    ?: extractJsonString(response, "result_b64")
-                    ?: return@withContext Result.failure(Exception("No translated image in response"))
-
-                val decodedBytes = Base64.decode(base64Result, Base64.DEFAULT)
-                val translatedBitmap = BitmapFactory.decodeByteArray(decodedBytes, 0, decodedBytes.size)
-                    ?: return@withContext Result.failure(Exception("Failed to decode translated image"))
-
-                Result.success(translatedBitmap)
-            } else {
-                val errorBody = connection.errorStream?.bufferedReader()?.readText() ?: "Unknown error"
-                connection.disconnect()
-                Result.failure(Exception("Server returned $code: $errorBody"))
-            }
+            Result.success(translatedBitmap)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
     /**
-     * Push OCR mode to server (syncs with /SetOcrMode)
+     * Step 1: POST /v1/translate with multipart/form-data
+     * Matches the extension's FormData: image (file), target_lang, ocr_lang, inpaint
+     * Returns job_id string, or null on failure.
      */
+    private fun createTranslationJob(
+        serverUrl: String,
+        bitmap: Bitmap,
+        targetLang: String,
+        ocrLang: String,
+        inpaint: Boolean = true,
+    ): String? {
+        // Compress bitmap to JPEG bytes for upload
+        val imageBytes = ByteArrayOutputStream().use { os ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, os)
+            os.toByteArray()
+        }
+
+        val boundary = "MangaAMTL-${System.currentTimeMillis()}"
+        val connection = URL("$serverUrl/v1/translate").openConnection() as HttpURLConnection
+        connection.connectTimeout = 30000
+        connection.readTimeout = 120000
+        connection.requestMethod = "POST"
+        connection.doOutput = true
+        connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=$boundary")
+
+        connection.outputStream.use { os ->
+            // -- image file part
+            writeFormField(os, boundary, "image", "manga_page.jpg", "image/jpeg", imageBytes)
+            // -- target_lang
+            writeFormField(os, boundary, "target_lang", targetLang)
+            // -- ocr_lang
+            writeFormField(os, boundary, "ocr_lang", ocrLang)
+            // -- inpaint
+            writeFormField(os, boundary, "inpaint", if (inpaint) "true" else "false")
+            // closing boundary
+            os.write("--$boundary--\r\n".toByteArray(Charsets.UTF_8))
+            os.flush()
+        }
+
+        val code = connection.responseCode
+        if (code == 200) {
+            val response = connection.inputStream.bufferedReader().readText()
+            connection.disconnect()
+            return extractJsonString(response, "job_id")
+        }
+        connection.disconnect()
+        return null
+    }
+
+    /**
+     * Step 2: Poll GET /v1/translate/{job_id} until completed or failed.
+     * Returns true if completed successfully.
+     */
+    private suspend fun pollJobStatus(serverUrl: String, jobId: String): Boolean {
+        var attempts = 0
+        val maxAttempts = 60 // ~2 minutes max
+
+        while (attempts < maxAttempts) {
+            delay(2000) // wait 2s between polls, matching extension's setTimeout
+            attempts++
+
+            try {
+                val connection = URL("$serverUrl/v1/translate/$jobId").openConnection() as HttpURLConnection
+                connection.connectTimeout = 5000
+                connection.readTimeout = 5000
+                connection.requestMethod = "GET"
+
+                val code = connection.responseCode
+                if (code == 200) {
+                    val body = connection.inputStream.bufferedReader().readText()
+                    connection.disconnect()
+
+                    val status = extractJsonString(body, "status")
+                    when (status) {
+                        "completed" -> return true
+                        "failed" -> return false
+                        // "pending" or "processing" → keep polling
+                    }
+                } else {
+                    connection.disconnect()
+                }
+            } catch (_: Exception) {
+                // Network glitch, keep trying
+            }
+        }
+        return false
+    }
+
+    /**
+     * Step 3: POST /v1/translate/{job_id}/image → rendered PNG bytes → Bitmap
+     */
+    private fun fetchTranslatedImage(serverUrl: String, jobId: String): Bitmap? {
+        val connection = URL("$serverUrl/v1/translate/$jobId/image").openConnection() as HttpURLConnection
+        connection.connectTimeout = 30000
+        connection.readTimeout = 60000
+        connection.requestMethod = "POST"
+
+        val code = connection.responseCode
+        if (code == 200) {
+            val bytes = connection.inputStream.readBytes()
+            connection.disconnect()
+            return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        }
+        connection.disconnect()
+        return null
+    }
+
+    // =========================================================================
+    // Server config push endpoints (sync settings to backend)
+    // =========================================================================
+
     suspend fun pushOcrMode(mode: String) = postToServer("/SetOcrMode", """{"mode":"$mode"}""")
 
-    /**
-     * Push inpainting mode to server (syncs with /SetInpaintMode)
-     */
     suspend fun pushInpaintMode(mode: String) = postToServer("/SetInpaintMode", """{"mode":"$mode"}""")
 
-    /**
-     * Push model type to server (syncs with /SetModelType)
-     */
     suspend fun pushModelType(modelType: String, model: String = "", apiKey: String = "") {
         val body = buildString {
             append("{\"model_type\":\"$modelType\"")
@@ -146,9 +207,6 @@ class TranslationService {
         postToServer("/SetModelType", body)
     }
 
-    /**
-     * Push font settings to server (syncs with /SetFont)
-     */
     suspend fun pushFontSettings(strokeWidth: Int, fontName: String = "") {
         val body = buildString {
             append("{")
@@ -159,10 +217,6 @@ class TranslationService {
         postToServer("/SetFont", body)
     }
 
-    /**
-     * Syncs all cached settings to the server.
-     * Called when user hits "Save Settings".
-     */
     suspend fun syncAllSettingsToServer() = withContext(Dispatchers.IO) {
         val serverUrl = prefs.serverUrl().get().trimEnd('/')
         if (serverUrl.isBlank()) return@withContext
@@ -187,6 +241,10 @@ class TranslationService {
         }
     }
 
+    // =========================================================================
+    // Helpers
+    // =========================================================================
+
     private suspend fun postToServer(endpoint: String, body: String) {
         val serverUrl = prefs.serverUrl().get().trimEnd('/')
         if (serverUrl.isBlank()) return
@@ -198,11 +256,44 @@ class TranslationService {
             connection.doOutput = true
             connection.setRequestProperty("Content-Type", "application/json")
             connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-            connection.responseCode // trigger the request
+            connection.responseCode // trigger request
             connection.disconnect()
         } catch (_: Exception) {
-            // Best-effort sync; don't crash if server is unavailable
+            // Best-effort sync
         }
+    }
+
+    private fun writeFormField(
+        os: OutputStream,
+        boundary: String,
+        name: String,
+        value: String,
+    ) {
+        val sb = StringBuilder()
+        sb.append("--$boundary\r\n")
+        sb.append("Content-Disposition: form-data; name=\"$name\"\r\n")
+        sb.append("\r\n")
+        sb.append(value)
+        sb.append("\r\n")
+        os.write(sb.toString().toByteArray(Charsets.UTF_8))
+    }
+
+    private fun writeFormField(
+        os: OutputStream,
+        boundary: String,
+        name: String,
+        filename: String,
+        contentType: String,
+        data: ByteArray,
+    ) {
+        val sb = StringBuilder()
+        sb.append("--$boundary\r\n")
+        sb.append("Content-Disposition: form-data; name=\"$name\"; filename=\"$filename\"\r\n")
+        sb.append("Content-Type: $contentType\r\n")
+        sb.append("\r\n")
+        os.write(sb.toString().toByteArray(Charsets.UTF_8))
+        os.write(data)
+        os.write("\r\n".toByteArray(Charsets.UTF_8))
     }
 
     private fun extractVersion(body: String): String {
@@ -213,7 +304,6 @@ class TranslationService {
 
     private fun extractJsonString(json: String, key: String): String? {
         val match = Regex("\"$key\"\\s*:\\s*\"([^\"]*)\"").find(json)
-        // Handle base64 which may contain unescaped chars; grab until closing quote
         return match?.groupValues?.get(1)
     }
 }

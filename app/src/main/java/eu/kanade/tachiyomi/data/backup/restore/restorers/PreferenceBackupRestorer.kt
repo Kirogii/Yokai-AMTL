@@ -60,7 +60,7 @@ class PreferenceBackupRestorer(
             }
             // end j2k fork differences
 
-            // << Yokai-J2K compat
+            // << Yokai-AMTL-J2K compat
             if (key == "extension_installer" && value is IntPreferenceValue) {
                 val enum = BasePreferences.ExtensionInstaller.migrate(value.value)
                 preferenceStore.getEnum(key, enum).set(enum)
@@ -78,7 +78,7 @@ class PreferenceBackupRestorer(
                 preferenceStore.getEnum(key, enum).set(enum)
                 return@forEach
             }
-            // >> Yokai-J2K compat
+            // >> Yokai-AMTL-J2K compat
 
             when (value) {
                 is IntPreferenceValue -> {

@@ -200,13 +200,13 @@ class CustomMangaManager(val context: Context) {
     }
 
     @Serializable
-    @XmlSerialName("ComicListYokai", "http://www.w3.org/2001/XMLSchema", "yk")
+    @XmlSerialName("ComicListYokaiAMTL", "http://www.w3.org/2001/XMLSchema", "yk")
     data class ComicList(
-        val comics: List<ComicInfoYokai>? = null,
+        val comics: List<ComicInfoYokaiAMTL>? = null,
     ) {
         @Serializable
-        @XmlSerialName("ComicInfoYokai", "http://www.w3.org/2001/XMLSchema", "yk")
-        data class ComicInfoYokai(
+        @XmlSerialName("ComicInfoYokaiAMTL", "http://www.w3.org/2001/XMLSchema", "yk")
+        data class ComicInfoYokaiAMTL(
             @XmlValue(true) val value: ComicInfo,
             var id: Long? = null,
         ) {
@@ -219,7 +219,7 @@ class CustomMangaManager(val context: Context) {
                     description: String? = null,
                     genre: Array<String>? = null,
                     status: Int? = null,
-                ): ComicInfoYokai {
+                ): ComicInfoYokaiAMTL {
                     return create(
                         id = id,
                         title = title,
@@ -239,8 +239,8 @@ class CustomMangaManager(val context: Context) {
                     description: String? = null,
                     genre: String? = null,
                     status: Int? = null,
-                ): ComicInfoYokai {
-                    return ComicInfoYokai(
+                ): ComicInfoYokaiAMTL {
+                    return ComicInfoYokaiAMTL(
                         id = id,
                         value = ComicInfo(
                             title = null,

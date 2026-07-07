@@ -3,7 +3,6 @@ package eu.kanade.tachiyomi.ui.setting.controllers
 import android.content.ComponentName
 import android.content.Intent
 import androidx.preference.PreferenceScreen
-import com.bluelinelabs.conductor.Controller
 import eu.kanade.tachiyomi.R
 import eu.kanade.tachiyomi.data.preference.PreferenceValues
 import eu.kanade.tachiyomi.data.preference.changesIn
@@ -28,7 +27,6 @@ import eu.kanade.tachiyomi.util.lang.addBetaTag
 import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.isTablet
 import eu.kanade.tachiyomi.util.view.activityBinding
-import eu.kanade.tachiyomi.util.view.withFadeTransaction
 import uy.kohesive.injekt.injectLazy
 import yokai.domain.ui.settings.ReaderPreferences
 import yokai.domain.ui.settings.ReaderPreferences.CutoutBehaviour
@@ -42,10 +40,6 @@ import eu.kanade.tachiyomi.ui.setting.titleMRes as titleRes
 class SettingsReaderController : SettingsLegacyController() {
 
     private val readerPreferences: ReaderPreferences by injectLazy()
-
-    private fun navigateTo(controller: Controller) {
-        router.pushController(controller.withFadeTransaction())
-    }
 
     override fun setupPreferenceScreen(screen: PreferenceScreen) = screen.apply {
         titleRes = MR.strings.reader
@@ -423,16 +417,6 @@ class SettingsReaderController : SettingsLegacyController() {
                 bindTo(preferences.folderPerManga())
                 titleRes = MR.strings.save_pages_separately
                 summaryRes = MR.strings.create_folders_by_manga_title
-            }
-        }
-
-        preferenceCategory {
-            title = "AI Translation"
-
-            preference {
-                title = "AI Translation Settings"
-                summary = "Configure server URL, translation provider, OCR engine, and more"
-                onClick { navigateTo(SettingsAiTranslationController()) }
             }
         }
     }

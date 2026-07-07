@@ -1,6 +1,7 @@
 package eu.kanade.tachiyomi.ui.reader.viewer.pager
 
 import android.graphics.PointF
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -42,6 +43,12 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
     val downloadManager: DownloadManager by injectLazy()
 
     val scope = MainScope()
+
+    // === AI TRANSLATION STATE ===
+    private val translatedPages = mutableSetOf<Int>()
+    private var isTranslatingAll = false
+    private var translatingChapterId: Long? = null
+    private val translationService: TranslationService = TranslationService()
 
     /**
      * View pager used by this viewer. It's abstract to implement L2R, R2L and vertical pagers on
@@ -528,85 +535,130 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
     // === AI TRANSLATION ===
 
     /**
-     * Translates the currently visible real page (not TranslateStubPage or transition).
-     * Sends to the FastAPI server and replaces the page image.
+     * Starts continuous auto-translation of all pages in the current chapter.
+     * Mirrors WebtoonViewer's translateAllPages() pattern:
+     * translates all currently loaded pages, and then continues translating
+     * new pages as the user scrolls, until a chapter transition is hit.
      */
-    fun translateCurrentPage() {
-        val item = adapter.joinedItems.getOrNull(pager.currentItem) ?: return
-        val readerPage = when {
-            item.first is ReaderPage && item.first !is TranslateStubPage -> item.first as ReaderPage
-            item.second is ReaderPage -> item.second as ReaderPage
-            else -> {
-                val realPage = adapter.joinedItems
-                    .drop(pager.currentItem)
-                    .mapNotNull { (it.first as? ReaderPage)?.takeUnless { it is TranslateStubPage } }
-                    .firstOrNull()
-                    ?: adapter.joinedItems
-                        .take(pager.currentItem)
-                        .mapNotNull { (it.first as? ReaderPage)?.takeUnless { it is TranslateStubPage } }
-                        .lastOrNull()
-                realPage ?: return
-            }
-        }
+    fun translateAllPages() {
+        if (isTranslatingAll) return
+        isTranslatingAll = true
+        translatingChapterId = adapter.currentChapter?.chapter?.id
+        translatedPages.clear()
 
-        val stubView = findTranslateStubView() ?: return
-        if (readerPage.status != eu.kanade.tachiyomi.source.model.Page.State.READY) {
-            stubView.setStatus("Page not yet loaded", true)
+        val stubView = findTranslateStubView() ?: run {
+            stopAutoTranslation()
             return
         }
-
         stubView.setTranslating(true)
 
-        scope.launch {
-            try {
-                val translationService: yokai.domain.ai.TranslationService =
-                    uy.kohesive.injekt.Injekt.get()
-
-                // Read page bytes from stream or file
-                val pageBytes = readPageBytes(readerPage)
-                if (pageBytes == null) {
-                    stubView.setStatus("Could not read page image", true)
-                    return@launch
+        // Register a page change listener to translate newly loaded pages as the user scrolls
+        val translationPageListener = object : ViewPager.SimpleOnPageChangeListener() {
+            override fun onPageSelected(position: Int) {
+                if (!isTranslatingAll) return
+                scope.launch {
+                    translateNewPages(stubView)
                 }
+            }
+        }
+        pager.addOnPageChangeListener(translationPageListener)
 
-                val bitmap = android.graphics.BitmapFactory.decodeByteArray(pageBytes, 0, pageBytes.size)
-                    ?: run {
-                        stubView.setStatus("Could not decode page image", true)
-                        return@launch
-                    }
+        // Immediately translate currently loaded pages
+        scope.launch {
+            translateNewPages(stubView)
+        }
+    }
 
+    /**
+     * Finds all untranslated READY pages in the current chapter, translates them,
+     * and replaces their page streams.
+     */
+    private suspend fun translateNewPages(stubView: ReaderTranslatePageView) {
+        if (!isTranslatingAll) return
+
+        val chapterId = translatingChapterId ?: return
+        val pagesToTranslate = adapter.joinedItems
+            .mapNotNull { item ->
+                val page = when {
+                    item.first is ReaderPage && item.first !is TranslateStubPage -> item.first as ReaderPage
+                    item.second is ReaderPage && item.second !is TranslateStubPage -> item.second as ReaderPage
+                    else -> null
+                }
+                page?.takeIf {
+                    it.chapter.chapter.id == chapterId &&
+                        it.status == eu.kanade.tachiyomi.source.model.Page.State.READY &&
+                        it.index !in translatedPages
+                }
+            }
+
+        for (page in pagesToTranslate) {
+            // Check for chapter transition before each page
+            val currentItem = adapter.joinedItems.getOrNull(pager.currentItem)
+            if (currentItem?.first is ChapterTransition.Next ||
+                currentItem?.second is ChapterTransition.Next
+            ) {
+                stopAutoTranslation()
+                return
+            }
+
+            if (!isTranslatingAll) return
+
+            translatedPages.add(page.index)
+
+            val pageBytes = readPageBytes(page)
+            if (pageBytes == null) {
+                stubView.setStatus("Could not read page ${page.number}", true)
+                continue
+            }
+
+            val bitmap = BitmapFactory.decodeByteArray(pageBytes, 0, pageBytes.size)
+            if (bitmap == null) {
+                stubView.setStatus("Could not decode page ${page.number}", true)
+                continue
+            }
+
+            try {
                 val result = translationService.translateImage(bitmap)
                 result.fold(
                     onSuccess = { translatedBitmap ->
-                        val baos = java.io.ByteArrayOutputStream()
-                        translatedBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, baos)
+                        val baos = ByteArrayOutputStream()
+                        translatedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
                         val translatedBytes = baos.toByteArray()
 
-                        readerPage.chapter.setTranslatedPage(readerPage.index, translatedBytes)
-                        readerPage.stream = { java.io.ByteArrayInputStream(translatedBytes) }
+                        page.chapter.setTranslatedPage(page.index, translatedBytes)
+                        page.stream = { ByteArrayInputStream(translatedBytes) }
 
-                        // Refresh the view
-                        val holder = getPageHolder(readerPage)
-                        holder?.let {
-                            it.item.first.let { p ->
-                                if (p is ReaderPage) p.status = eu.kanade.tachiyomi.source.model.Page.State.READY
-                            }
-                            // Trigger layout refresh
-                            refreshAdapter()
-                        }
-                        stubView.setStatus("Page translated!")
+                        stubView.setStatus("Translated page ${page.number}")
                     },
                     onFailure = { error ->
-                        stubView.setStatus("Translation failed: ${error.localizedMessage ?: "unknown error"}", true)
+                        stubView.setStatus("Failed page ${page.number}: ${error.localizedMessage ?: "unknown"}", true)
                     },
                 )
             } catch (e: Exception) {
-                Logger.e(e) { "Translation failed" }
-                stubView.setStatus("Error: ${e.localizedMessage ?: "unknown"}", true)
-            } finally {
-                stubView.setTranslating(false)
+                Logger.e(e) { "Translation failed for page ${page.number}" }
+                stubView.setStatus("Error on page ${page.number}: ${e.localizedMessage ?: "unknown"}", true)
             }
         }
+
+        if (!isTranslatingAll) return
+
+        // Check if we've hit a chapter transition
+        val currentItem = adapter.joinedItems.getOrNull(pager.currentItem)
+        if (currentItem?.first is ChapterTransition.Next ||
+            currentItem?.second is ChapterTransition.Next
+        ) {
+            stopAutoTranslation()
+        }
+    }
+
+    /**
+     * Stops auto-translation and cleans up state.
+     */
+    private fun stopAutoTranslation() {
+        isTranslatingAll = false
+        translatingChapterId = null
+        val stubView = findTranslateStubView()
+        stubView?.setTranslating(false)
     }
 
     private fun readPageBytes(page: ReaderPage): ByteArray? {

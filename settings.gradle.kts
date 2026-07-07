@@ -29,7 +29,7 @@ dependencyResolutionManagement {
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
-rootProject.name = "Yokai"
+rootProject.name = "Yokai-AMTL"
 include(":app")
 include(":core")
 include(":data")

@@ -7,15 +7,10 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,36 +34,25 @@ import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.injectLazy
 import yokai.domain.ai.TranslationService
 import yokai.domain.ui.settings.AiTranslationPreferences
+import yokai.i18n.MR
 import yokai.presentation.component.preference.Preference
 import yokai.presentation.component.preference.widget.BasePreferenceWidget
 import yokai.presentation.component.preference.widget.PrefsHorizontalPadding
 import yokai.presentation.settings.ComposableSettings
+import yokai.presentation.settings.SettingsScaffold
 
-/**
- * AI Translation settings screen, intended as a standalone settings page
- * accessible from reader settings menu.
- *
- * Features:
- * - Server URL + Verify ("Set") button at top
- * - Provider (Local/OpenRouter), OCR Engine, Inpainting Mode, Target Language dropdowns
- * - OpenRouter model/API key fields (shown when OpenRouter selected)
- * - "Cache & Sync Settings" save button that pushes all settings to the server
- */
 object SettingsAiTranslationScreen : ComposableSettings {
 
     @Composable
-    override fun getTitleRes(): StringResource {
-        return object : StringResource {
-            override val resourceId: String = "ai_translation"
-        }
-    }
+    override fun getTitleRes(): StringResource = MR.strings.reader
 
     @Composable
     override fun Content() {
-        yokai.presentation.settings.SettingsScaffold(
+        SettingsScaffold(
             title = "AI Translation",
             itemsProvider = { getPreferences() },
         )
@@ -97,6 +81,31 @@ object SettingsAiTranslationScreen : ComposableSettings {
         var verifying by remember { mutableStateOf(false) }
         var verifyResult by remember { mutableStateOf<VerifyResult?>(null) }
 
+        val verifyAction: () -> Unit = {
+            scope.launch {
+                verifying = true
+                verifyResult = null
+                try {
+                    val normalizedUrl = textFieldValue.trimEnd('/')
+                    val service = TranslationService()
+                    val result = service.verifyServer(normalizedUrl)
+                    verifying = false
+                    result.fold(
+                        onSuccess = { version ->
+                            prefs.serverUrl().set(normalizedUrl)
+                            verifyResult = VerifyResult.Success(version)
+                        },
+                        onFailure = { e ->
+                            verifyResult = VerifyResult.Error(e.localizedMessage ?: "Connection failed")
+                        },
+                    )
+                } catch (e: Exception) {
+                    verifying = false
+                    verifyResult = VerifyResult.Error(e.localizedMessage ?: "Unknown error")
+                }
+            }
+        }
+
         return Preference.PreferenceItem.CustomPreference(
             title = "FastAPI Server",
         ) {
@@ -104,9 +113,8 @@ object SettingsAiTranslationScreen : ComposableSettings {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = PrefsHorizontalPadding)
-                    .verticalScroll(rememberScrollState()),
+                    ,
             ) {
-                // Server URL + Set button
                 BasePreferenceWidget(
                     subcomponent = {
                         Column {
@@ -121,18 +129,12 @@ object SettingsAiTranslationScreen : ComposableSettings {
                                     label = { Text("Server URL") },
                                     singleLine = true,
                                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-                                    keyboardActions = KeyboardActions(
-                                        onGo = {
-                                            verifyAndSaveServer(prefs, textFieldValue, scope) { verifying = it; verifyResult = null } { verifyResult = it }
-                                        },
-                                    ),
+                                    keyboardActions = KeyboardActions(onGo = { verifyAction() }),
                                     modifier = Modifier.weight(1f),
                                     isError = verifyResult is VerifyResult.Error,
                                 )
                                 Button(
-                                    onClick = {
-                                        verifyAndSaveServer(prefs, textFieldValue, scope) { verifying = it; verifyResult = null } { verifyResult = it }
-                                    },
+                                    onClick = { verifyAction() },
                                     enabled = !verifying,
                                 ) {
                                     if (verifying) Text("...") else Text("Set")
@@ -158,23 +160,21 @@ object SettingsAiTranslationScreen : ComposableSettings {
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Cache & Sync button
                 var saving by remember { mutableStateOf(false) }
                 Button(
                     onClick = {
                         scope.launch {
                             saving = true
                             try {
-                                // First save the URL if changed
                                 if (textFieldValue != serverUrl) {
                                     prefs.serverUrl().set(textFieldValue.trimEnd('/'))
                                 }
-                                val service: TranslationService = uy.kohesive.injekt.Injekt.get()
+                                val service = TranslationService()
                                 withContext(Dispatchers.IO) { service.syncAllSettingsToServer() }
                                 withContext(Dispatchers.Main) {
                                     context.toast("Settings cached & synced to server")
                                 }
-                            } catch (e: Exception) {
+                            } catch (_: Exception) {
                                 withContext(Dispatchers.Main) {
                                     context.toast("Synced to server (partial — check server)")
                                 }
@@ -318,36 +318,6 @@ object SettingsAiTranslationScreen : ComposableSettings {
                 "id" to "Indonesian",
             ),
         )
-    }
-
-    private fun verifyAndSaveServer(
-        prefs: AiTranslationPreferences,
-        url: String,
-        scope: kotlinx.coroutines.CoroutineScope,
-        onStart: (Boolean) -> Unit,
-        onResult: (VerifyResult) -> Unit,
-    ) {
-        scope.launch {
-            onStart(true)
-            try {
-                val normalization = url.trimEnd('/')
-                val service: TranslationService = uy.kohesive.injekt.Injekt.get()
-                val result = service.verifyServer(normalization)
-                onStart(false)
-                result.fold(
-                    onSuccess = { version ->
-                        prefs.serverUrl().set(normalization)
-                        onResult(VerifyResult.Success(version))
-                    },
-                    onFailure = { e ->
-                        onResult(VerifyResult.Error(e.localizedMessage ?: "Connection failed"))
-                    },
-                )
-            } catch (e: Exception) {
-                onStart(false)
-                onResult(VerifyResult.Error(e.localizedMessage ?: "Unknown error"))
-            }
-        }
     }
 
     private sealed class VerifyResult {
