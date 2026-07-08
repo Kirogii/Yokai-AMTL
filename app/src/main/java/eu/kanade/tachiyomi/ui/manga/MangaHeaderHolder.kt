@@ -190,6 +190,7 @@ class MangaHeaderHolder(
 
     fun bindChapters() {
         val presenter = adapter.delegate.mangaPresenter()
+        populateScanlatorChips(presenter)
         val count = presenter.chapters.size
         if (binding != null) {
             binding.chaptersTitle.text = itemView.context.getString(MR.plurals.chapters_plural, count, count)
