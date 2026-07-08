@@ -699,7 +699,6 @@ class MangaDetailsController :
             }
             colorAnimator?.cancel()
 
-            getHeader()?.clearDescFocus()
             val colorSurface = activity?.getResourceColor(
                 R.attr.colorSurface,
             ) ?: Color.BLACK
@@ -1106,13 +1105,7 @@ class MangaDetailsController :
     private fun setSearchViewListener(searchView: SearchView?) {
         setOnQueryTextChangeListener(searchView) {
             query = it ?: ""
-            if (!isTablet) {
-                if (query.isNotEmpty()) {
-                    getHeader()?.collapse()
-                } else {
-                    getHeader()?.expand()
-                }
-            }
+            // Header stays visible during search
 
             adapter?.setFilter(query)
             adapter?.performFilter()

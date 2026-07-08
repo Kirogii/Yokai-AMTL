@@ -1222,4 +1222,6 @@
     <string name="reader_target_resolution">Target resolution (px)</string>
     <string name="reader_show_processing_status">Show processing status</string>
 
+
+    <string name="show_more_details">Show more details</string>
 </resources>
