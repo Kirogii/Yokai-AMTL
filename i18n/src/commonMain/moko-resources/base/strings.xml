@@ -1191,4 +1191,35 @@
     <string name="refresh">Refresh</string>
 
     <string name="ai_translation">AI Translation</string>
+
+    <!-- Image Enhancement Settings -->
+    <string name="reader_image_enhancement">Image enhancement</string>
+    <string name="reader_image_enhancement_summary">Use AI models to upscale and denoise manga pages</string>
+    <string name="reader_image_enhancement_toast">Image enhancement %s</string>
+    <string name="reader_model">Model</string>
+    <string name="reader_model_realcugan_se">Real-CUGAN SE</string>
+    <string name="reader_model_realcugan_pro">Real-CUGAN Pro</string>
+    <string name="reader_model_realesrgan">Real-ESRGAN</string>
+    <string name="reader_model_realcugan_nose">Real-CUGAN Nose</string>
+    <string name="reader_model_waifu2x">Waifu2x</string>
+    <string name="reader_model_waifu2x_fast">Waifu2x (Fast)</string>
+    <string name="reader_denoise_level">Denoise level</string>
+    <string name="reader_none">None</string>
+    <string name="reader_denoise_1x">Denoise 1x</string>
+    <string name="reader_denoise_2x">Denoise 2x</string>
+    <string name="reader_denoise_3x">Denoise 3x</string>
+    <string name="reader_conservative">Conservative</string>
+    <string name="reader_scale_factor">Scale factor</string>
+    <string name="reader_scale_fixed_2x">Fixed 2x</string>
+    <string name="reader_preload_pages">Preload pages</string>
+    <string name="reader_preload_pages_value">%d pages</string>
+    <string name="reader_gpu_performance_mode">GPU performance mode</string>
+    <string name="reader_gpu_performance_high">Performance (90%)</string>
+    <string name="reader_gpu_performance_balanced">Balanced (50%)</string>
+    <string name="reader_gpu_performance_power_saving">Power saving (30%)</string>
+    <string name="reader_target_width">Target width</string>
+    <string name="reader_target_height">Target height</string>
+    <string name="reader_target_resolution">Target resolution (px)</string>
+    <string name="reader_show_processing_status">Show processing status</string>
+
 </resources>

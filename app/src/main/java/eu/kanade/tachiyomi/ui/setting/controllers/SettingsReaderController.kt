@@ -388,7 +388,106 @@ class SettingsReaderController : SettingsLegacyController() {
                 titleRes = MR.strings.pref_double_tap_zoom
             }
         }
+
         preferenceCategory {
+            titleRes = MR.strings.reader_image_enhancement
+
+            switchPreference {
+                bindTo(readerPreferences.realCuganEnabled())
+                titleRes = MR.strings.reader_image_enhancement
+                summaryRes = MR.strings.reader_image_enhancement_summary
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganModel())
+                titleRes = MR.strings.reader_model
+                entriesRes = arrayOf(
+                    MR.strings.reader_model_realcugan_se,
+                    MR.strings.reader_model_realcugan_pro,
+                    MR.strings.reader_model_realesrgan,
+                    MR.strings.reader_model_realcugan_nose,
+                    MR.strings.reader_model_waifu2x,
+                    MR.strings.reader_model_waifu2x_fast,
+                )
+                entryValues = listOf(0, 1, 2, 3, 4, 5)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganNoiseLevel())
+                titleRes = MR.strings.reader_denoise_level
+                entriesRes = arrayOf(
+                    MR.strings.reader_none,
+                    MR.strings.reader_denoise_1x,
+                    MR.strings.reader_denoise_2x,
+                    MR.strings.reader_denoise_3x,
+                    MR.strings.reader_conservative,
+                )
+                entryValues = listOf(0, 1, 2, 3, 4)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganScale())
+                titleRes = MR.strings.reader_scale_factor
+                entries = listOf("2x", "3x", "4x")
+                entryValues = listOf(2, 3, 4)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganPreloadSize())
+                titleRes = MR.strings.reader_preload_pages
+                entries = listOf("1", "2", "3", "5", "8")
+                entryValues = listOf(1, 2, 3, 5, 8)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganPerformanceMode())
+                titleRes = MR.strings.reader_gpu_performance_mode
+                entriesRes = arrayOf(
+                    MR.strings.reader_gpu_performance_high,
+                    MR.strings.reader_gpu_performance_balanced,
+                    MR.strings.reader_gpu_performance_power_saving,
+                )
+                entryValues = listOf(0, 1, 2)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganMaxSizeWidth())
+                titleRes = MR.strings.reader_target_width
+                summaryRes = MR.strings.reader_target_resolution
+                entries = listOf("800", "1200", "1600", "1920", "2560", "3840")
+                entryValues = listOf(800, 1200, 1600, 1920, 2560, 3840)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            intListPreference(activity) {
+                bindTo(readerPreferences.realCuganMaxSizeHeight())
+                titleRes = MR.strings.reader_target_height
+                entries = listOf("800", "1200", "1600", "1920", "2560", "3840")
+                entryValues = listOf(800, 1200, 1600, 1920, 2560, 3840)
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+
+            switchPreference {
+                bindTo(readerPreferences.realCuganShowStatus())
+                titleRes = MR.strings.reader_show_processing_status
+
+                readerPreferences.realCuganEnabled().changesIn(viewScope) { isVisible = it }
+            }
+        }
+
+            preferenceCategory {
             titleRes = MR.strings.navigation
 
             switchPreference {
