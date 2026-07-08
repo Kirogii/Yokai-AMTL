@@ -89,6 +89,22 @@
             android:entries="@array/zoom_start" />
 
         <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/join_double_pages"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/pref_join_double_pages"
+            android:textColor="?attr/colorOnBackground" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/shift_double_pages"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="@string/pref_shift_double_pages"
+            android:textColor="?attr/colorOnBackground" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/invert_double_pages"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

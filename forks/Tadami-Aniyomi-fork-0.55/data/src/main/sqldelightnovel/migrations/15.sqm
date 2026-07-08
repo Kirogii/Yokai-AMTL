@@ -1,1 +1,0 @@
-ALTER TABLE novel_plugins ADD COLUMN repo_name TEXT;

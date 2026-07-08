@@ -1,4 +1,4 @@
-package yokai.core.di
+﻿package yokai.core.di
 
 import org.koin.dsl.module
 import yokai.data.category.CategoryRepositoryImpl
@@ -17,6 +17,7 @@ import yokai.domain.category.interactor.UpdateCategories
 import yokai.domain.chapter.ChapterRepository
 import yokai.domain.chapter.interactor.DeleteChapter
 import yokai.domain.chapter.interactor.GetAvailableScanlators
+import yokai.domain.chapter.interactor.GetScanlatorChapterCounts
 import yokai.domain.chapter.interactor.GetChapter
 import yokai.domain.chapter.interactor.InsertChapter
 import yokai.domain.chapter.interactor.UpdateChapter
@@ -81,6 +82,7 @@ fun domainModule() = module {
     single<ChapterRepository> { ChapterRepositoryImpl(get()) }
     factory { DeleteChapter(get()) }
     factory { GetAvailableScanlators(get()) }
+    factory { GetScanlatorChapterCounts(get()) }
     factory { GetChapter(get()) }
     factory { InsertChapter(get()) }
     factory { UpdateChapter(get()) }
@@ -96,3 +98,5 @@ fun domainModule() = module {
     factory { GetTrack(get()) }
     factory { InsertTrack(get()) }
 }
+
+

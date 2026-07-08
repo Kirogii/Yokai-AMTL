@@ -40,4 +40,7 @@ class ReaderPreferences(
     fun realCuganResizeLargeImage() = preferenceStore.getBoolean("pref_realcugan_resize_large_image", true)
 
     fun realCuganShowStatus() = preferenceStore.getBoolean("pref_realcugan_show_status", false)
+    fun joinDoublePages() = preferenceStore.getBoolean("pref_join_double_pages", false)
+
+    fun shiftDoublePages() = preferenceStore.getBoolean("pref_shift_double_pages", false)
 }

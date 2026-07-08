@@ -65,6 +65,11 @@ class BackupCreatorJob(private val context: Context, workerParams: WorkerParamet
     }
 
     private fun getAutomaticBackupLocation(): Uri? {
+        val backupPreferences: BackupPreferences = Injekt.get()
+        val cloudUri = backupPreferences.cloudBackupUri().get()
+        if (cloudUri.isNotBlank()) {
+            return cloudUri.toUri()
+        }
         val storageManager = Injekt.get<StorageManager>()
         return storageManager.getAutomaticBackupsDirectory()?.uri
     }

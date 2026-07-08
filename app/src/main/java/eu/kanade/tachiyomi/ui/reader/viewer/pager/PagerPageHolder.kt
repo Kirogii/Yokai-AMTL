@@ -136,8 +136,17 @@ class PagerPageHolder(
             ) {
                 this@PagerPageHolder.page.longPage = true
             }
+            // Set isWide for joinDoublePages feature
+            this@PagerPageHolder.page.isWide = sHeight < sWidth
         }
         onImageDecoded()
+
+        // If joinDoublePages is enabled, refresh adapter to re-trigger grouping
+        if (viewer.config.joinDoublePages) {
+            scope.launchUI {
+                viewer.config.imagePropertyChangedListener?.invoke()
+            }
+        }
     }
 
     override fun onNeedsLandscapeZoom() {

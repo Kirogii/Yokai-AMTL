@@ -74,6 +74,7 @@ class PagerConfig(
     var autoDoublePages = preferences.pageLayout().get() == PageLayout.AUTOMATIC.value
 
     var splitPages = preferences.pageLayout().get() == PageLayout.SPLIT_PAGES.value
+
     var autoSplitPages = preferences.automaticSplitsPage().get()
 
     init {
@@ -122,6 +123,25 @@ class PagerConfig(
 
         preferences.invertDoublePages()
             .register({ invertDoublePages = it }, { imagePropertyChangedListener?.invoke() })
+        preferences.joinDoublePages()
+            .register({
+                joinDoublePages = it
+                if (it) {
+                    doublePages = true
+                } else {
+                    val layout = preferences.pageLayout().get()
+                    autoDoublePages = layout == PageLayout.AUTOMATIC.value
+                    if (!autoDoublePages) {
+                        doublePages = layout == PageLayout.DOUBLE_PAGES.value
+                    }
+                }
+            }, {
+                imagePropertyChangedListener?.invoke()
+                reloadChapterListener?.invoke(joinDoublePages)
+            })
+
+        preferences.shiftDoublePages()
+            .register({ shiftDoublePage = it }, { imagePropertyChangedListener?.invoke() })
 
         preferences.pageLayout()
             .changes()
@@ -146,6 +166,8 @@ class PagerConfig(
 
         preferences.automaticSplitsPage()
             .register({ autoSplitPages = it })
+
+
         navigationOverlayForNewUser = preferences.showNavigationOverlayNewUser().get()
         if (navigationOverlayForNewUser) {
             preferences.showNavigationOverlayNewUser().set(false)

@@ -1,5 +1,6 @@
 package eu.kanade.tachiyomi.ui.reader.viewer.pager
 
+import android.content.res.Configuration
 import android.view.View
 import android.view.ViewGroup
 import co.touchlab.kermit.Logger
@@ -11,6 +12,7 @@ import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.SplitPage
 import eu.kanade.tachiyomi.ui.reader.model.TranslateStubPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
+import eu.kanade.tachiyomi.ui.reader.model.JoinedReaderPage
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderTranslatePageView
 import eu.kanade.tachiyomi.ui.reader.viewer.hasMissingChapters
 import eu.kanade.tachiyomi.util.system.launchUI
@@ -169,8 +171,76 @@ class PagerViewerAdapter(private val viewer: PagerViewer) : ViewPagerAdapter() {
         }
     }
 
+    private fun flushJoinBuffer(
+        buffer: MutableList<ReaderPage>,
+        joined: MutableList<Pair<ReaderItem, ReaderItem?>>,
+    ) {
+        if (buffer.isEmpty()) return
+        val grouped = groupPagesForDoublePage(
+            buffer.toList(),
+            joinDoublePages = true,
+            shiftDoublePages = viewer.config.shiftDoublePage,
+            isLandscape = true,
+            isR2L = viewer is R2LPagerViewer,
+        )
+        for (item in grouped) {
+            when (item) {
+                is JoinedReaderPage -> joined.add(Pair(item.firstPage, item.secondPage))
+                is ReaderPage -> joined.add(Pair(item, null))
+            }
+        }
+        buffer.clear()
+    }
+
     private fun setJoinedItems(useSecondPage: Boolean = false) {
         val oldCurrent = joinedItems.getOrNull(viewer.pager.currentItem)
+
+        // joinDoublePages: pair non-wide pages side-by-side in landscape
+        if (viewer.config.joinDoublePages) {
+            val isLandscape = (viewer.activity.resources.configuration?.orientation
+                ?: Configuration.ORIENTATION_PORTRAIT) == Configuration.ORIENTATION_LANDSCAPE
+
+            if (isLandscape) {
+                val newJoined = mutableListOf<Pair<ReaderItem, ReaderItem?>>()
+                var pageBuffer = mutableListOf<ReaderPage>()
+
+                for (item in subItems) {
+                    when {
+                        item is TranslateStubPage -> {
+                            flushJoinBuffer(pageBuffer, newJoined)
+                            newJoined.add(Pair(item, null))
+                        }
+                        item is ChapterTransition -> {
+                            flushJoinBuffer(pageBuffer, newJoined)
+                            newJoined.add(Pair(item, null))
+                        }
+                        item is ReaderPage && item !is TranslateStubPage -> {
+                            pageBuffer.add(item)
+                        }
+                    }
+                }
+                flushJoinBuffer(pageBuffer, newJoined)
+
+                if (viewer is R2LPagerViewer) {
+                    newJoined.reverse()
+                }
+                this.joinedItems = newJoined
+                notifyDataSetChanged()
+
+                val newPage = oldCurrent?.first ?: return
+                val index = joinedItems.indexOfFirst {
+                    val firstPage = it.first as? ReaderPage
+                    val secondPage = it.second as? ReaderPage
+                    it.first == newPage || it.second == newPage ||
+                        (firstPage != null && (firstPage.isFromSamePage(newPage as? ReaderPage ?: return@indexOfFirst false)))
+                }
+                if (index > -1) {
+                    viewer.pager.setCurrentItem(index, false)
+                }
+                return
+            }
+        }
+
         if (!viewer.config.doublePages) {
             subItems.forEach {
                 (it as? ReaderPage)?.apply {
@@ -372,4 +442,43 @@ class PagerViewerAdapter(private val viewer: PagerViewer) : ViewPagerAdapter() {
             viewer.pager.setCurrentItem(index, false)
         }
     }
+}
+
+internal fun groupPagesForDoublePage(
+    pages: List<ReaderPage>,
+    joinDoublePages: Boolean,
+    shiftDoublePages: Boolean = false,
+    isLandscape: Boolean,
+    isR2L: Boolean,
+): List<Any> {
+    if (!joinDoublePages || !isLandscape) {
+        return pages
+    }
+
+    val result = mutableListOf<Any>()
+    var i = 0
+    if (shiftDoublePages && pages.isNotEmpty()) {
+        result.add(pages[0])
+        i = 1
+    }
+    while (i < pages.size) {
+        val currentPage = pages[i]
+        if (currentPage.isWide) {
+            result.add(currentPage)
+            i++
+            continue
+        }
+
+        val nextPage = pages.getOrNull(i + 1)
+        if (nextPage != null && !nextPage.isWide) {
+            val first = if (isR2L) nextPage else currentPage
+            val second = if (isR2L) currentPage else nextPage
+            result.add(JoinedReaderPage(first, second))
+            i += 2
+        } else {
+            result.add(currentPage)
+            i++
+        }
+    }
+    return result
 }

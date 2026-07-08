@@ -25,7 +25,9 @@ open class ReaderPage(
 
     var enhancementStream: (() -> InputStream)? = null
     var enhancementKeySuffix: String = ""
-    open lateinit var chapter: ReaderChapter
+    
+    var isWide: Boolean = false
+open lateinit var chapter: ReaderChapter
 
     /** Value to check if a page is too wide to be doubled up */
     var fullPage: Boolean? = null

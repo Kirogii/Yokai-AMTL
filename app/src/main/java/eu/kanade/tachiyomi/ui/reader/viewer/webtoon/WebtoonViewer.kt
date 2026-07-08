@@ -354,6 +354,7 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
     private var isTranslatingAll = false
     private var autoTranslateScrollObserver: RecyclerView.OnScrollListener? = null
     private var translatingChapterId: Long? = null
+    private var isTranslatingBatch = false
     private val translationService: yokai.domain.ai.TranslationService by injectLazy()
 
     /**
@@ -375,7 +376,7 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
         if (autoTranslateScrollObserver == null) {
             autoTranslateScrollObserver = object : RecyclerView.OnScrollListener() {
                 override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                    if (newState == RecyclerView.SCROLL_STATE_IDLE && isTranslatingAll) {
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE && isTranslatingAll && !isTranslatingBatch) {
                         scope.launch { translateNewPages(stubView) }
                     }
                 }
@@ -399,6 +400,9 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
      * Stops auto-translation if we've hit a ChapterTransition (next chapter boundary).
      */
     private suspend fun translateNewPages(stubView: ReaderTranslatePageView?) {
+        if (isTranslatingBatch) return
+        isTranslatingBatch = true
+        try {
         // Check if we've scrolled past the current chapter into a transition/next chapter
         val lastVisiblePos = layoutManager.findLastEndVisibleItemPosition()
         val visibleItems = (layoutManager.findFirstVisibleItemPosition()..lastVisiblePos)
@@ -474,6 +478,9 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
         if (newVisibleItems.any { it is ChapterTransition.Next }) {
             stopAutoTranslation(stubView)
             stubView?.setStatus("Reached next chapter - $newTranslations pages translated. Tap to continue.")
+        }
+        } finally {
+            isTranslatingBatch = false
         }
     }
 

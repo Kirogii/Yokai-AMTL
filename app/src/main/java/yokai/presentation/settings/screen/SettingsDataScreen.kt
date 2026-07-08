@@ -6,6 +6,7 @@ import android.content.Intent
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.net.toUri
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -32,6 +33,7 @@ import eu.kanade.tachiyomi.data.backup.create.BackupCreatorJob
 import eu.kanade.tachiyomi.data.backup.restore.BackupRestoreJob
 import eu.kanade.tachiyomi.data.cache.ChapterCache
 import eu.kanade.tachiyomi.data.cache.CoverCache
+import com.hippo.unifile.UniFile
 import eu.kanade.tachiyomi.extension.ExtensionManager
 import eu.kanade.tachiyomi.util.compose.LocalAlertDialog
 import eu.kanade.tachiyomi.util.compose.currentOrThrow
@@ -40,6 +42,7 @@ import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.e
 import eu.kanade.tachiyomi.util.system.launchNonCancellableIO
 import eu.kanade.tachiyomi.util.system.toast
+import eu.kanade.tachiyomi.util.system.tryTakePersistableUriPermission
 import eu.kanade.tachiyomi.util.system.withUIContext
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentMapOf
@@ -75,6 +78,7 @@ object SettingsDataScreen : ComposableSettings {
         return persistentListOf(
             getStorageLocationPreference(storagePreferences = storagePreferences),
             getBackupAndRestoreGroup(backupPreferences = backupPreferences),
+            getCloudBackupGroup(backupPreferences = backupPreferences),
             getDataGroup(),
         )
     }
@@ -102,6 +106,7 @@ object SettingsDataScreen : ComposableSettings {
         val scope = rememberCoroutineScope()
         val context = LocalContext.current
         val alertDialog = LocalAlertDialog.currentOrThrow
+
         val extensionManager = remember { Injekt.get<ExtensionManager>() }
         val storageManager = remember { Injekt.get<StorageManager>() }
 
@@ -234,6 +239,7 @@ object SettingsDataScreen : ComposableSettings {
                 ),
             ),
         )
+
     }
 
     @Composable
@@ -317,6 +323,53 @@ object SettingsDataScreen : ComposableSettings {
                     title = stringResource(MR.strings.pref_auto_clear_chapter_cache),
                 ),
                  */
+            ),
+        )
+    }
+
+    @Composable
+    private fun getCloudBackupGroup(backupPreferences: BackupPreferences): Preference.PreferenceGroup {
+        val context = LocalContext.current
+
+        val cloudBackupPicker = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocumentTree(),
+        ) { uri ->
+            if (uri != null) {
+                val flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                context.tryTakePersistableUriPermission(uri, flags)
+                backupPreferences.cloudBackupUri().set(uri.toString())
+            }
+        }
+
+        val cloudBackupUri by backupPreferences.cloudBackupUri().collectAsState()
+        val cloudBackupSubtitle = remember(cloudBackupUri) {
+            if (cloudBackupUri.isBlank()) {
+                stringResource(MR.strings.cloud_backup_folder_not_set)
+            } else {
+                UniFile.fromUri(context, cloudBackupUri.toUri())?.filePath
+                    ?: stringResource(MR.strings.invalid_location, cloudBackupUri)
+            }
+        }
+
+        return Preference.PreferenceGroup(
+            title = stringResource(MR.strings.cloud_backup_folder),
+            preferenceItems = persistentListOf(
+                Preference.PreferenceItem.TextPreference(
+                    title = stringResource(MR.strings.cloud_backup_folder),
+                    subtitle = stringResource(MR.strings.cloud_backup_folder_subtitle) +
+                        "\n" + cloudBackupSubtitle,
+                    onClick = {
+                        try {
+                            cloudBackupPicker.launch(null)
+                        } catch (e: ActivityNotFoundException) {
+                            context.toast(MR.strings.file_picker_error)
+                        }
+                    },
+                ),
+                Preference.PreferenceItem.InfoPreference(
+                    stringResource(MR.strings.cloud_backup_info),
+                ),
             ),
         )
     }

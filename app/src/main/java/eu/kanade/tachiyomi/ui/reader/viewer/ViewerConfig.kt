@@ -29,6 +29,8 @@ abstract class ViewerConfig(
     var volumeKeysEnabled = false
     var volumeKeysInverted = false
     var alwaysShowChapterTransition = true
+    var joinDoublePages = false
+        protected set
 
     var navigationOverlayForNewUser = false
     var navigationMode = 0

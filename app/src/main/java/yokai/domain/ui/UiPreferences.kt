@@ -11,4 +11,6 @@ class UiPreferences(private val preferenceStore: PreferenceStore) {
     fun uniformGrid() = preferenceStore.getBoolean(PreferenceKeys.uniformGrid, true)
 
     fun enableChapterSwipeAction() = preferenceStore.getBoolean("enable_chapter_swipe_action", true)
+
+    fun showMangaScanlatorBranches() = preferenceStore.getBoolean("show_manga_scanlator_branches", true)
 }

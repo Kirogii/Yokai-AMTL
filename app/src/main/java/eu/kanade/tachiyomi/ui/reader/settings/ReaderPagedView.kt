@@ -47,6 +47,10 @@ class ReaderPagedView @JvmOverloads constructor(context: Context, attrs: Attribu
                 updatePagedGroup(!isWebtoonView)
             }
 
+            joinDoublePages.bindToPreference(preferences.joinDoublePages()) {
+                updateJoinShiftVisibility()
+            }
+            shiftDoublePages.bindToPreference(preferences.shiftDoublePages())
             invertDoublePages.bindToPreference(preferences.invertDoublePages())
 
             pageLayout.title = pageLayout.title.toString().addBetaTag(context)
@@ -125,5 +129,12 @@ class ReaderPagedView @JvmOverloads constructor(context: Context, attrs: Attribu
             )
         }
         binding.invertDoublePages.isVisible = show && preferences.pageLayout().get() != PageLayout.SINGLE_PAGE.value
+        updateJoinShiftVisibility()
+    }
+    private fun updateJoinShiftVisibility() {
+        val joinEnabled = preferences.joinDoublePages().get()
+        val showPaged = preferences.pageLayout().get() != PageLayout.SINGLE_PAGE.value
+        binding.joinDoublePages.isVisible = showPaged
+        binding.shiftDoublePages.isVisible = joinEnabled && showPaged
     }
 }
