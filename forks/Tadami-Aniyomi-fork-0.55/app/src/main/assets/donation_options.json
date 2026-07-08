@@ -1,0 +1,51 @@
+[
+  {
+    "id": "cloudtips",
+    "type": "link",
+    "title": "Поддержать из РФ / СНГ",
+    "description": "CloudTips: перевод через СБП, T-Pay или банковскую карту. Быстрый и простой добровольный перевод.",
+    "tags": [
+      "РФ",
+      "СНГ",
+      "СБП",
+      "T-Pay"
+    ],
+    "value": "https://pay.cloudtips.ru/p/cae17cec"
+  },
+  {
+    "id": "boosty",
+    "type": "link",
+    "title": "Boosty",
+    "description": "Популярная платформа для поддержки создателей. Подходит для разовых донатов из РФ/СНГ и других стран.",
+    "tags": [
+      "Boosty",
+      "СНГ",
+      "Карта"
+    ],
+    "value": "https://boosty.to/tadami/donate"
+  },
+  {
+    "id": "crypto_usdt_tron",
+    "type": "crypto",
+    "title": "USDT Tron (TRC20)",
+    "description": "Прямой перевод стейблкоина USDT в сети Tron (TRC20).",
+    "tags": [
+      "TRON",
+      "TRC20",
+      "Crypto"
+    ],
+    "value": "TJwbx9PNLLpMetpyJ83DpGCCdNWwkcEXTt"
+  },
+  {
+    "id": "crypto_usdt",
+    "type": "crypto",
+    "title": "USDT (TON)",
+    "description": "Перевод стейблкоина USDT в сети TON.",
+    "tags": [
+      "USDT",
+      "TON",
+      "Crypto"
+    ],
+    "value": "UQBTdyHogZWuUnv10WfFUM0yQ8lc3iXFh-4JyLStNirFCBrm"
+  }
+]

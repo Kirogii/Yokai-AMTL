@@ -11,7 +11,11 @@
 <div align="center">
 
 A free and open source manga reader
-### This is just yokai with support for mangaamtl
+### Builds soon maybe in a week take note tho latest commits havent been added yet
+
+| | |
+|:-:|:--|
+| <img src=".github/readme-images/Phone.png" width="250"> | <b>MangaAMTL Support Fully Implemented</b><br><br>Yokai-AMTL now has complete support for MangaAMTL.<br><br><b>Required Backend:</b><br><a href="https://github.com/Kirogii/MangaAMTL">github.com/Kirogii/MangaAMTL</a> |
 
 ### Credits
 
@@ -44,3 +48,4 @@ See the License for the specific language governing permissions and
 limitations under the License.
 </pre>
 </div>
+

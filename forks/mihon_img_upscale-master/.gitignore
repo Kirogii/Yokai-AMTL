@@ -1,0 +1,22 @@
+# Build files
+.gradle
+.kotlin
+build
+app/.cxx/
+app/release/
+
+# IDE files
+*.iml
+.idea/*
+!.idea/icon.svg
+/captures
+
+# Configuration files
+local.properties
+
+# Android specific ignores
+*.dm
+*.apk
+
+# macOS specific files
+.DS_Store

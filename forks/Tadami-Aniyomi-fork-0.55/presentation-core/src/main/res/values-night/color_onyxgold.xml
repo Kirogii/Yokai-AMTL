@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="onyxgold_primary">#D4AF37</color>
+    <color name="onyxgold_onPrimary">#050507</color>
+    <color name="onyxgold_primaryContainer">#8C7323</color>
+    <color name="onyxgold_onPrimaryContainer">#FFF0B8</color>
+    <color name="onyxgold_secondary">#FFD700</color>
+    <color name="onyxgold_onSecondary">#050507</color>
+    <color name="onyxgold_secondaryContainer">#3A3114</color>
+    <color name="onyxgold_onSecondaryContainer">#FFEFA8</color>
+    <color name="onyxgold_tertiary">#F5F5DC</color>
+    <color name="onyxgold_onTertiary">#050507</color>
+    <color name="onyxgold_tertiaryContainer">#4D4D3D</color>
+    <color name="onyxgold_onTertiaryContainer">#FAFAD2</color>
+    <color name="onyxgold_background">#050507</color>
+    <color name="onyxgold_onBackground">#ECE5C8</color>
+    <color name="onyxgold_surface">#0A0A0E</color>
+    <color name="onyxgold_onSurface">#ECE5C8</color>
+    <color name="onyxgold_surfaceVariant">#111116</color>
+    <color name="onyxgold_onSurfaceVariant">#D4CFA9</color>
+    <color name="onyxgold_outline">#D4AF37</color>
+    <color name="onyxgold_inverseOnSurface">#111116</color>
+    <color name="onyxgold_inverseSurface">#EBEBEB</color>
+    <color name="onyxgold_primaryInverse">#1E1E24</color>
+    <color name="onyxgold_elevationOverlay">@color/onyxgold_primary</color>
+</resources>

@@ -11,8 +11,7 @@
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="?attr/background"
-        android:paddingBottom="60dp">
+        android:background="?attr/background">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/linear_recycler_layout"
@@ -58,7 +57,6 @@
 
     <View android:id="@+id/touch_view" android:layout_width="match_parent" android:layout_height="match_parent" />
 
-    <!-- Full-cover zoom image -->
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/manga_cover_full"
         android:layout_width="match_parent" android:layout_height="match_parent"
@@ -66,36 +64,4 @@
         android:layout_marginEnd="16dp" android:layout_marginBottom="16dp"
         android:contentDescription="@string/cover_of_image"
         android:elevation="10dp" android:translationZ="20dp" android:visibility="invisible" />
-
-    <!-- Details Bottom Sheet -->
-    <include android:id="@+id/details_bottom_sheet" layout="@layout/manga_details_bottom_sheet" />
-
-    <!-- Floating Bottom Bar -->
-    <LinearLayout
-        android:id="@+id/bottom_bar"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="?attr/background"
-        android:elevation="12dp"
-        android:gravity="center"
-        android:orientation="horizontal"
-        android:paddingStart="12dp" android:paddingTop="8dp"
-        android:paddingEnd="12dp" android:paddingBottom="8dp">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bb_favorite_button"
-            style="@style/Widget.Tachiyomi.Button.OutlinedButton.Icon"
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_weight="1" android:text="@string/add_to_library"
-            app:icon="@drawable/ic_heart_outline_24dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/bb_start_reading_button"
-            style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="0dp" android:layout_height="wrap_content"
-            android:layout_marginStart="8dp" android:layout_weight="1"
-            android:text="@string/start_reading" app:cornerRadius="20dp"
-            tools:text="Continue Ch. 17" />
-    </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

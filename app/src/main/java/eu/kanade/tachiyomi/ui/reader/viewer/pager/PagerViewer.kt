@@ -48,6 +48,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
     private val translatedPages = mutableSetOf<Int>()
     private var isTranslatingAll = false
     private var translatingChapterId: Long? = null
+    private var isTranslatingBatch = false
     private val translationService: TranslationService = TranslationService()
 
     /**
@@ -556,7 +557,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
         // Register a page change listener to translate newly loaded pages as the user scrolls
         val translationPageListener = object : ViewPager.SimpleOnPageChangeListener() {
             override fun onPageSelected(position: Int) {
-                if (!isTranslatingAll) return
+                if (!isTranslatingAll || isTranslatingBatch) return
                 scope.launch {
                     translateNewPages(stubView)
                 }
@@ -575,6 +576,9 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
      * and replaces their page streams.
      */
     private suspend fun translateNewPages(stubView: ReaderTranslatePageView) {
+        if (isTranslatingBatch) return
+        isTranslatingBatch = true
+        try {
         if (!isTranslatingAll) return
 
         val chapterId = translatingChapterId ?: return
@@ -606,7 +610,6 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
 
             if (!isTranslatingAll) return
 
-            translatedPages.add(page.index)
 
             val pageBytes = readPageBytes(page)
             if (pageBytes == null) {
@@ -624,6 +627,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
                 val result = translationService.translateImage(bitmap)
                 result.fold(
                     onSuccess = { translatedBitmap ->
+                        translatedPages.add(page.index)
                         val baos = ByteArrayOutputStream()
                         translatedBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos)
                         val translatedBytes = baos.toByteArray()
@@ -647,6 +651,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
                         stubView.setStatus("Translated page ${page.number}")
                     },
                     onFailure = { error ->
+                        translatedPages.add(page.index)
                         stubView.setStatus("Failed page ${page.number}: ${error.localizedMessage ?: "unknown"}", true)
                     },
                 )
@@ -664,6 +669,9 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
             currentItem?.second is ChapterTransition.Next
         ) {
             stopAutoTranslation()
+        }
+        } finally {
+            isTranslatingBatch = false
         }
     }
 
