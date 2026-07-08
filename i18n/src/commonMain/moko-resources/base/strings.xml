@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">Yokai-AMTL</string>
     <string name="app_short_name" translatable="false">Yokai-AMTL</string>
@@ -49,8 +49,8 @@
     <string name="author">Author</string>
     <string name="artist">Artist</string>
     <string name="description">Description</string>
-    <string name="move_x_to">Move %1$s to…</string>
-    <string name="add_x_to">Add %1$s to…</string>
+    <string name="move_x_to">Move %1$s toâ€¦</string>
+    <string name="add_x_to">Add %1$s toâ€¦</string>
 
     <!-- Status -->
     <string name="ongoing">Ongoing</string>
@@ -94,6 +94,10 @@
     <string name="by_chapter_number">By chapter number</string>
     <string name="by_update_date">By upload date</string>
     <string name="scanlators">Scanlators</string>
+    <string name="scanlator_group">Scanlator group</string>
+    <string name="all_scanlators">All scanlators</string>
+    <string name="scanlator_chapter_count">%1$s (%2$d)</string>
+    <string name="show_scanlator_branches">Show scanlator branches</string>
 
     <!-- Category -->
     <string name="category">Category</string>
@@ -128,7 +132,7 @@
     <string name="new_version_available">New version available!</string>
     <string name="new_beta_version_available">New beta version available!</string>
     <string name="no_new_updates_available">No new updates available</string>
-    <string name="searching_for_updates">Searching for updates…</string>
+    <string name="searching_for_updates">Searching for updatesâ€¦</string>
     <string name="release_page">Release page</string>
     <string name="could_not_install_update">Could not install update</string>
     <string name="update_completed">Update completed</string>
@@ -166,7 +170,7 @@
     <string name="read_progress">Read progress</string>
     <string name="series_type">Series type</string>
     <string name="series">Series</string>
-    <string name="group_library_by">Group library by…</string>
+    <string name="group_library_by">Group library byâ€¦</string>
     <string name="tracking_status">Tracking status</string>
     <string name="ungrouped">Ungrouped</string>
 
@@ -204,6 +208,10 @@
     <string name="more_library_settings">More library settings</string>
     <string name="shift_one_page_over">Shift one page over</string>
     <string name="shift_double_pages">Shift double pages</string>
+    <string name="pref_join_double_pages">Join double pages</string>
+    <string name="pref_join_double_pages_summary">Show two single pages side-by-side in landscape mode</string>
+    <string name="pref_shift_double_pages">Shift double pages</string>
+    <string name="pref_shift_double_pages_summary">Shift the pairing of double pages by one page</string>
 
     <!-- Library update service notifications -->
     <string name="allow_notifications_recommended">Allowing notifications is recommended to keep your library and app up to date.</string>
@@ -266,7 +274,7 @@
     <string name="view_all_updates">View all updates</string>
     <string name="show_more_chapters">Show more chapters</string>
     <string name="collapse_grouped_chapters">Collapse grouped chapters</string>
-    <string name="search_recents">Search recents…</string>
+    <string name="search_recents">Search recentsâ€¦</string>
     <string name="no_recent_read_updated_manga">No recently read or updated series</string>
     <string name="no_recent_chapters">No recent chapters</string>
     <string name="no_recently_read_manga">No recently read series</string>
@@ -304,13 +312,13 @@
     <string name="no_results_found">No results found</string>
     <string name="local_source">Local source</string>
     <string name="other">Other</string>
-    <string name="global_search">Global search…</string>
+    <string name="global_search">Global searchâ€¦</string>
     <string name="label_global_search">Global search</string>
     <string name="latest">Latest</string>
     <string name="popular">Popular</string>
     <string name="browse">Browse</string>
     <string name="in_library">In Library</string>
-    <string name="search_extensions">Search extensions…</string>
+    <string name="search_extensions">Search extensionsâ€¦</string>
     <string name="all_sources">All sources</string>
     <string name="sources">Sources</string>
     <string name="source_hidden">Source hidden</string>
@@ -384,7 +392,7 @@
     <string name="previous_title">Previous:</string>
     <string name="theres_no_next_chapter">There\'s no next chapter</string>
     <string name="theres_no_previous_chapter">There\'s no previous chapter</string>
-    <string name="loading_pages">Loading pages…</string>
+    <string name="loading_pages">Loading pagesâ€¦</string>
     <string name="failed_to_load_pages_">Failed to load pages: %1$s</string>
     <string name="reading_">Reading %1$s</string>
     <string name="long_strip">Long strip</string>
@@ -782,6 +790,10 @@
     <string name="backup_restore_invalid_uri">Error: empty URI</string>
     <string name="creating_backup">Creating backup</string>
     <string name="backup_info">Automatic backups are highly recommended. You should keep copies in other places as well.</string>
+    <string name="cloud_backup_folder">Cloud backup folder</string>
+    <string name="cloud_backup_folder_subtitle">Save automatic backups to cloud storage</string>
+    <string name="cloud_backup_folder_not_set">No cloud backup folder set</string>
+    <string name="cloud_backup_info">Save automatic backups to a cloud storage folder. Uses Android's Storage Access Framework - compatible with Google Drive, Dropbox, OneDrive, and other SAF-enabled apps.</string>
     <string name="what_should_backup">What do you want to backup?</string>
     <string name="restoring_backup">Restoring backup</string>
     <string name="restore_duration">%02d min, %02d sec</string>
@@ -1103,7 +1115,7 @@
     <string name="learn_why">Learn why</string>
     <string name="left">Left</string>
     <string name="less">Less</string>
-    <string name="loading">Loading…</string>
+    <string name="loading">Loadingâ€¦</string>
     <string name="lock">Lock</string>
     <string name="mark_all_as_read">Mark all as read</string>
     <string name="mark_all_as_unread">Mark all as unread</string>
@@ -1225,3 +1237,4 @@
 
     <string name="show_more_details">Show more details</string>
 </resources>
+

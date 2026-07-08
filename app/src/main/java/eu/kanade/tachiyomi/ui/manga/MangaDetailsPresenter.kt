@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.ui.manga
+﻿package eu.kanade.tachiyomi.ui.manga
 
 import android.app.Application
 import android.graphics.Bitmap
@@ -101,6 +101,7 @@ import yokai.domain.manga.models.cover
 import yokai.domain.storage.StorageManager
 import yokai.domain.track.interactor.DeleteTrack
 import yokai.domain.track.interactor.GetTrack
+import yokai.domain.ui.UiPreferences
 import yokai.domain.track.interactor.InsertTrack
 import yokai.i18n.MR
 import yokai.util.lang.getString
@@ -125,6 +126,7 @@ class MangaDetailsPresenter(
     private val getTrack: GetTrack by injectLazy()
     private val insertTrack: InsertTrack by injectLazy()
     private val getHistory: GetHistory by injectLazy()
+    private val uiPreferences: UiPreferences by injectLazy()
 
     private val networkPreferences: NetworkPreferences by injectLazy()
 
@@ -179,6 +181,12 @@ class MangaDetailsPresenter(
         private set
 
     var allChapterScanlators: Set<String> = emptySet()
+
+    // Scanlator branch selector state
+    var scanlatorChapterCounts: Map<String, Int> = emptyMap()
+    var selectedScanlator: String? = null
+
+    val showScanlatorBranches: Boolean get() = uiPreferences.showMangaScanlatorBranches()
 
     override val progressJobs: MutableMap<Download, Job> = mutableMapOf()
     override val queueListenerScope get() = presenterScope
@@ -281,6 +289,10 @@ class MangaDetailsPresenter(
         // Find downloaded chapters
         setDownloadedChapters(chapters, queue)
         allChapterScanlators = allChapters.mapNotNull { it.chapter.scanlator }.toSet()
+        scanlatorChapterCounts = allChapters
+            .groupBy { it.chapter.scanlator ?: "" }
+            .mapValues { it.value.size }
+            .filterKeys { it.isNotBlank() }
 
         this.chapters = applyChapterFilters(chapters)
     }
@@ -719,6 +731,16 @@ class MangaDetailsPresenter(
             .joinToString(", ") { view?.view?.context?.getString(it) ?: "" }
     }
 
+    fun selectScanlator(scanlator: String?) {
+        selectedScanlator = scanlator
+        if (scanlator == null) {
+            setScanlatorFilter(emptySet())
+        } else {
+            val toExclude = allChapterScanlators - scanlator
+            setScanlatorFilter(toExclude)
+        }
+    }
+
     fun setScanlatorFilter(filteredScanlators: Set<String>) {
         presenterScope.launchNonCancellableIO {
             val manga = manga
@@ -1142,3 +1164,6 @@ class MangaDetailsPresenter(
         const val MULTIPLE_SEASONS = 3
     }
 }
+
+
+

@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.data.preference
+﻿package eu.kanade.tachiyomi.data.preference
 
 /**
  * This class stores the keys for the preferences in the application.
@@ -71,6 +71,10 @@ object PreferenceKeys {
     const val automaticSplitsPage = "automatic_splits_page"
 
     const val invertDoublePages = "invert_double_pages"
+
+    const val joinDoublePages = "pref_join_double_pages"
+
+    const val shiftDoublePages = "pref_shift_double_pages"
 
     const val webtoonPageLayout = "webtoon_page_layout"
 
@@ -233,4 +237,6 @@ object PreferenceKeys {
     const val hideChapterTitles = "hide_chapter_titles"
 
     const val chaptersDescAsDefault = "chapters_desc_as_default"
+    const val showMangaScanlatorBranches = "show_manga_scanlator_branches"
 }
+

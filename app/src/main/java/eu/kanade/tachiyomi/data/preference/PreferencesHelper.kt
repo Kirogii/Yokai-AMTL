@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.data.preference
+﻿package eu.kanade.tachiyomi.data.preference
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
@@ -34,24 +34,30 @@ fun <T> Preference<T>.changesIn(scope: CoroutineScope, block: (value: T) -> Unit
     return changes()
         .onEach { block(it) }
         .launchIn(scope)
+
+    fun showMangaScanlatorBranches() = preferenceStore.getBoolean(Keys.showMangaScanlatorBranches, true)
 }
 
 fun Preference<Boolean>.toggle() = set(!get())
 
 operator fun <T> Preference<Set<T>>.plusAssign(item: T) {
     set(get() + item)
+
 }
 
 operator fun <T> Preference<Set<T>>.minusAssign(item: T) {
     set(get() - item)
+
 }
 
 operator fun <T> Preference<Set<T>>.plusAssign(item: Collection<T>) {
     set(get() + item)
+
 }
 
 operator fun <T> Preference<Set<T>>.minusAssign(item: Collection<T>) {
     set(get() - item)
+
 }
 
 class PreferencesHelper(val context: Context, val preferenceStore: PreferenceStore) {
@@ -140,6 +146,10 @@ class PreferencesHelper(val context: Context, val preferenceStore: PreferenceSto
     fun automaticSplitsPage() = preferenceStore.getBoolean(Keys.automaticSplitsPage, false)
 
     fun invertDoublePages() = preferenceStore.getBoolean(Keys.invertDoublePages, false)
+
+    fun joinDoublePages() = preferenceStore.getBoolean(Keys.joinDoublePages, false)
+
+    fun shiftDoublePages() = preferenceStore.getBoolean(Keys.shiftDoublePages, false)
 
     fun webtoonPageLayout() = preferenceStore.getInt(Keys.webtoonPageLayout, PageLayout.SINGLE_PAGE.value)
 
@@ -424,4 +434,7 @@ class PreferencesHelper(val context: Context, val preferenceStore: PreferenceSto
     fun coverColors() = preferenceStore.getStringSet(Keys.coverColors, emptySet())
 
     fun useStaggeredGrid() = preferenceStore.getBoolean("use_staggered_grid", false)
+
 }
+
+
