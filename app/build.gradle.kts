@@ -1,4 +1,4 @@
-import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsPlugin
+﻿import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsPlugin
 import com.google.gms.googleservices.GoogleServicesPlugin
 import java.io.ByteArrayOutputStream
 import java.time.LocalDateTime
@@ -148,6 +148,13 @@ android {
         shaders = false
     }
 
+
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
     flavorDimensions.add("default")
 
     productFlavors {

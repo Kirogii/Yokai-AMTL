@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.ui.reader.viewer.webtoon
+﻿package eu.kanade.tachiyomi.ui.reader.viewer.webtoon
 
 import eu.kanade.tachiyomi.data.preference.PreferenceValues
 import eu.kanade.tachiyomi.data.preference.PreferencesHelper
@@ -12,6 +12,9 @@ import eu.kanade.tachiyomi.ui.reader.viewer.navigation.LNavigation
 import eu.kanade.tachiyomi.ui.reader.viewer.navigation.RightAndLeftNavigation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import android.app.Application
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import uy.kohesive.injekt.Injekt
@@ -105,6 +108,84 @@ class WebtoonConfig(
 
         preferences.readerTheme()
             .register({ readerTheme = it }, { imagePropertyChangedListener?.invoke() })
+        readerPreferences.realCuganEnabled().changes()
+            .drop(1)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganModel().changes()
+            .drop(1)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganNoiseLevel().changes()
+            .drop(1)
+            .debounce(500)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganScale().changes()
+            .drop(1)
+            .debounce(500)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganInputScale().changes()
+            .drop(1)
+            .debounce(500)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganMaxSizeWidth().changes()
+            .drop(1)
+            .debounce(500)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganMaxSizeHeight().changes()
+            .drop(1)
+            .debounce(500)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganResizeLargeImage().changes()
+            .drop(1)
+            .onEach {
+                eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache.clear(Injekt.get<Application>())
+                imagePropertyChangedListener?.invoke()
+            }
+            .launchIn(scope)
+
+        readerPreferences.realCuganShowStatus().changes()
+            .drop(1)
+            .onEach { imagePropertyChangedListener?.invoke() }
+            .launchIn(scope)
+
+        readerPreferences.realCuganPreloadSize().changes()
+            .drop(1)
+            .onEach { imagePropertyChangedListener?.invoke() }
+            .launchIn(scope)
     }
 
     override var navigator: ViewerNavigation = defaultNavigation()
@@ -129,3 +210,4 @@ class WebtoonConfig(
         navigationModeChangedListener?.invoke()
     }
 }
+

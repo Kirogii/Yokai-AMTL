@@ -165,6 +165,9 @@ import kotlinx.coroutines.withContext
 import uy.kohesive.injekt.injectLazy
 import yokai.domain.base.BasePreferences
 import yokai.domain.ui.settings.ReaderPreferences
+import eu.kanade.tachiyomi.util.waifu2x.Waifu2x
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancer
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache
 import yokai.domain.ui.settings.ReaderPreferences.LandscapeCutoutBehaviour
 import yokai.i18n.MR
 import yokai.util.lang.getString
@@ -420,6 +423,9 @@ class ReaderActivity : BaseActivity<ReaderActivityBinding>() {
             .filterNotNull()
             .onEach(::setChapters)
             .launchIn(lifecycleScope)
+        if (readerPreferences.waifu2xEnabled().get()) {
+            Waifu2x.init(this, readerPreferences.waifu2xNoiseLevel().get())
+        }
 
         viewModel.eventFlow
             .onEach { event ->
@@ -2169,3 +2175,4 @@ class ReaderActivity : BaseActivity<ReaderActivityBinding>() {
         }
     }
 }
+

@@ -22,6 +22,10 @@ import uy.kohesive.injekt.api.get
 import java.util.concurrent.*
 import java.util.concurrent.atomic.*
 import kotlin.math.min
+import android.app.Application
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancer
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache
+import yokai.domain.ui.settings.ReaderPreferences
 
 /**
  * Loader used to load chapters from an online source.
@@ -31,7 +35,10 @@ class HttpPageLoader(
     private val source: HttpSource,
     private val chapterCache: ChapterCache = Injekt.get(),
     private val preferences: PreferencesHelper = Injekt.get(),
+    private val readerPreferences: ReaderPreferences = Injekt.get(),
 ) : PageLoader() {
+
+    override var isLocal: Boolean = false
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -40,7 +47,7 @@ class HttpPageLoader(
      */
     private val queue = PriorityBlockingQueue<PriorityPage>()
 
-    private val preloadSize = preferences.preloadSize().get()
+    private val preloadSize: Int get() = if (readerPreferences.realCuganEnabled().get()) readerPreferences.realCuganPreloadSize().get() else preferences.preloadSize().get()
 
     init {
         scope.launchIO {
@@ -201,7 +208,44 @@ class HttpPageLoader(
                 chapterCache.putImageToCache(imageUrl, imageResponse)
             }
 
-            page.stream = { chapterCache.getImageFile(imageUrl).inputStream() }
+            var streamSource = { chapterCache.getImageFile(imageUrl).inputStream() }
+
+            if (readerPreferences.realCuganEnabled().get()) {
+                val context = Injekt.get<Application>()
+                ImageEnhancementCache.init(context)
+
+                val mangaId = page.chapter.chapter.manga_id
+                val chapterId = page.chapter.chapter.id
+
+                if (mangaId != null && chapterId != null) {
+                    val configHash = ImageEnhancementCache.getConfigHash(
+                        readerPreferences.realCuganNoiseLevel().get(),
+                        readerPreferences.realCuganScale().get(),
+                        readerPreferences.realCuganInputScale().get(),
+                        readerPreferences.realCuganModel().get(),
+                        readerPreferences.realCuganMaxSizeWidth().get(),
+                        readerPreferences.realCuganMaxSizeHeight().get(),
+                        true
+                    )
+                    val cachedFile = ImageEnhancementCache.getCachedImage(
+                        mangaId,
+                        chapterId,
+                        page.index,
+                        configHash,
+                        page.enhancementKeySuffix,
+                    )
+                    if (cachedFile != null) {
+                        streamSource = { cachedFile.inputStream() }
+                    } else {
+                        page.stream = streamSource
+                        ImageEnhancer.enhance(context, page, false)
+                    }
+                }
+            }
+
+            if (page.stream == null) {
+                page.stream = streamSource
+            }
             page.status = Page.State.READY
         } catch (e: Throwable) {
             page.status = Page.State.ERROR
@@ -211,3 +255,4 @@ class HttpPageLoader(
         }
     }
 }
+

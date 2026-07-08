@@ -33,13 +33,31 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView.SCALE_TYPE_
 import com.github.chrisbanes.photoview.PhotoView
 import eu.kanade.tachiyomi.data.coil.cropBorders
 import eu.kanade.tachiyomi.data.coil.customDecoder
+import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.viewer.pager.PagerConfig
 import eu.kanade.tachiyomi.ui.reader.viewer.webtoon.WebtoonSubsamplingImageView
 import eu.kanade.tachiyomi.util.system.DeviceUtil
 import eu.kanade.tachiyomi.util.system.ImageUtil
 import eu.kanade.tachiyomi.util.system.animatorDurationScale
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancementCache
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancer
+import eu.kanade.tachiyomi.util.waifu2x.Waifu2x
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import logcat.LogPriority
+import okio.Buffer
 import okio.BufferedSource
-import yokai.domain.ui.settings.ReaderPreferences.CutoutBehaviour
+import tachiyomi.core.common.util.system.logcat
+import uy.kohesive.injekt.Injekt
+import uy.kohesive.injekt.api.get
+import yokai.domain.ui.settings.ReaderPreferences
 
 /**
  * A wrapper view for showing page image.
@@ -57,6 +75,8 @@ open class ReaderPageImageView @JvmOverloads constructor(
     private val isWebtoon: Boolean = false,
 ) : FrameLayout(context, attrs, defStyleAttrs, defStyleRes) {
 
+    private val viewScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
     protected var pageView: View? = null
 
     private var config: Config? = null
@@ -68,9 +88,56 @@ open class ReaderPageImageView @JvmOverloads constructor(
 
     open fun onNeedsLandscapeZoom() { }
 
+    // ===== Enhancement (waifu2x) integration =====
+
+    /**
+     * If true, this view updates the global current page index when [onPageSelected] is invoked.
+     * Disabled for split-page dummy holders so they don't clobber the real current page.
+     */
+    var controlsCurrentPageSelection: Boolean = true
+
+    /** Optional factory that converts an enhanced cached [java.io.File] into a [BufferedSource]. */
+    var enhancedImageSourceFactory: ((java.io.File) -> BufferedSource?)? = null
+
+    /** When true, the status overlay (if any) is suppressed by an outer holder. */
+    var suppressDefaultStatus = false
+
+    /** Optional override for the raw stream used to seed the enhancer. */
+    var enhancementStreamOverride: (() -> java.io.InputStream)? = null
+
+    /** Reveal-window fractions used by callers that animate the enhanced swap (kept for API parity). */
+    var processedTransitionStartFraction: Float = 0f
+    var processedTransitionEndFraction: Float = 1f
+
+    /** Identity of the page this view is currently bound to. */
+    var pageIndex: Int = -1
+    var mangaId: Long = -1L
+    var chapterId: Long = -1L
+
+    /** The [ReaderPage] (if any) bound to this view — used as the source of truth for IDs/variant. */
+    var readerPage: ReaderPage? = null
+
+    /** Optional override for the enhancement variant key (e.g. split-page suffix). */
+    var enhancementVariantOverride: String? = null
+
+    private var enhancedBitmap: android.graphics.Bitmap? = null
+    private var processingJob: Job? = null
+
+    /** Path of the file currently displayed, when it came from the enhancement cache. */
+    private var currentLoadedPath: String? = null
+
+    /** True while we are intentionally loading the enhanced image (prevents re-poll loops). */
+    private var isSettingProcessedImage = false
+
+    private val readerPreferences by lazy { Injekt.get<ReaderPreferences>() }
+
     @CallSuper
     open fun onImageLoaded() {
         onImageLoaded?.invoke()
+        // Only poll for an enhanced version if we are not already displaying one.
+        if (!isSettingProcessedImage) {
+            startEnhancementPolling()
+        }
     }
 
     @CallSuper
@@ -88,6 +155,24 @@ open class ReaderPageImageView @JvmOverloads constructor(
         onViewClicked?.invoke()
     }
 
+    /**
+     * Called when this page becomes the active page. Reprioritizes enhancement work around
+     * this page so the user-facing page is processed first.
+     */
+    open fun onPageSelected(forward: Boolean) {
+        val mId = readerPage?.chapter?.chapter?.manga_id ?: mangaId
+        val cId = readerPage?.chapter?.chapter?.id ?: chapterId
+        val pIdx = readerPage?.index ?: pageIndex
+
+        if (controlsCurrentPageSelection && pIdx >= 0) {
+            currentGlobalPageIndex = pIdx
+        }
+
+        if (mId != -1L && cId != -1L && pIdx >= 0) {
+            ImageEnhancer.reprioritizeAround(pIdx, enhancementVariant())
+        }
+    }
+
     fun setImage(drawable: Drawable, config: Config) {
         this.config = config
         if (drawable is Animatable) {
@@ -100,21 +185,154 @@ open class ReaderPageImageView @JvmOverloads constructor(
     }
 
     fun setImage(source: BufferedSource, isAnimated: Boolean, config: Config) {
+        this.config = config
+
+        // === Enhancement cache check (G) ===
+        // Before loading the raw stream, check whether an enhanced version is already cached.
+        // If so, substitute it for the raw source so we display the enhanced image immediately.
+        val mId = readerPage?.chapter?.chapter?.manga_id ?: mangaId
+        val cId = readerPage?.chapter?.chapter?.id ?: chapterId
+        val pIdx = readerPage?.index ?: pageIndex
+
+        val effectiveSource: BufferedSource = if (
+            !isAnimated &&
+            readerPreferences.realCuganEnabled().get() &&
+            mId != -1L && cId != -1L && pIdx >= 0
+        ) {
+            try {
+                ImageEnhancementCache.init(context)
+                val configHash = buildEnhancementConfigHash()
+                val pageVariant = enhancementVariant()
+                val cachedFile = ImageEnhancementCache.getCachedImage(mId, cId, pIdx, configHash, pageVariant)
+                if (cachedFile != null) {
+                    currentLoadedPath = cachedFile.absolutePath
+                    isSettingProcessedImage = true
+                    enhancedImageSourceFactory?.invoke(cachedFile)
+                        ?: Buffer().readFrom(cachedFile.inputStream())
+                } else {
+                    // Not cached yet; load the raw source and let polling swap in the enhanced image.
+                    currentLoadedPath = null
+                    isSettingProcessedImage = false
+                    source
+                }
+            } catch (e: Exception) {
+                logcat(LogPriority.WARN) { "ReaderPageImageView: enhancement cache lookup failed: ${e.message}" }
+                source
+            }
+        } else {
+            source
+        }
+
         if (isAnimated) {
             prepareAnimatedImageView()
-            setAnimatedImage(source, config)
+            setAnimatedImage(effectiveSource, config)
         } else {
             prepareNonAnimatedImageView()
-            setNonAnimatedImage(source, config)
+            setNonAnimatedImage(effectiveSource, config)
         }
     }
 
     fun recycle() = pageView?.let {
+        processingJob?.cancel()
+        processingJob = null
         when (it) {
             is SubsamplingScaleImageView -> it.recycle()
             is AppCompatImageView -> it.dispose()
         }
         it.isVisible = false
+        enhancedBitmap?.recycle()
+        enhancedBitmap = null
+        isSettingProcessedImage = false
+        currentLoadedPath = null
+        invalidate()
+    }
+
+    // ===== Enhancement helpers =====
+
+    /** Variant key used when looking up enhanced cache entries (e.g. split-page "L"/"R"). */
+    private fun enhancementVariant(): String {
+        return enhancementVariantOverride ?: readerPage?.enhancementKeySuffix.orEmpty()
+    }
+
+    private fun buildEnhancementConfigHash(): String {
+        return ImageEnhancementCache.getConfigHash(
+            readerPreferences.realCuganNoiseLevel().get(),
+            readerPreferences.realCuganScale().get(),
+            readerPreferences.realCuganInputScale().get(),
+            readerPreferences.realCuganModel().get(),
+            readerPreferences.realCuganMaxSizeWidth().get(),
+            readerPreferences.realCuganMaxSizeHeight().get(),
+            true,
+        )
+    }
+
+    /**
+     * Polls [ImageEnhancementCache] every ~300ms for an enhanced version of the currently-bound
+     * page. When the enhanced file appears, swap it into the [SubsamplingScaleImageView].
+     *
+     * Safe to call from [onImageLoaded]: it short-circuits when the enhanced image is already
+     * displayed, when enhancement is disabled, or when the page identity is unknown.
+     */
+    private fun startEnhancementPolling() {
+        val mId = readerPage?.chapter?.chapter?.manga_id ?: mangaId
+        val cId = readerPage?.chapter?.chapter?.id ?: chapterId
+        val pIdx = readerPage?.index ?: pageIndex
+        if (mId == -1L || cId == -1L || pIdx < 0) return
+        if (!readerPreferences.realCuganEnabled().get()) return
+
+        ImageEnhancementCache.init(context)
+        val configHash = buildEnhancementConfigHash()
+        val pageVariant = enhancementVariant()
+
+        // Already showing this exact enhanced file — nothing to do.
+        val current = ImageEnhancementCache.getCachedImage(mId, cId, pIdx, configHash, pageVariant)
+        if (current != null && current.absolutePath == currentLoadedPath) return
+
+        // Skipped pages never get enhanced — stop polling.
+        if (ImageEnhancementCache.isSkipped(mId, cId, pIdx, configHash, pageVariant)) return
+
+        processingJob?.cancel()
+        processingJob = viewScope.launch(Dispatchers.Main.immediate) {
+            try {
+                while (isActive) {
+                    if (ImageEnhancementCache.isSkipped(mId, cId, pIdx, configHash, pageVariant)) {
+                        break
+                    }
+                    val file = ImageEnhancementCache.getCachedImage(mId, cId, pIdx, configHash, pageVariant)
+                    if (file != null) {
+                        if (file.absolutePath != currentLoadedPath) {
+                            swapToEnhancedFile(file)
+                        }
+                        break
+                    }
+                    delay(300)
+                }
+            } catch (_: CancellationException) {
+                // Detached / recycled — expected.
+            } catch (e: Exception) {
+                logcat(LogPriority.ERROR) { "ReaderPageImageView: enhancement polling failed: ${e.message}" }
+            }
+        }
+    }
+
+    /**
+     * Swaps the currently displayed image to the enhanced [file] by reusing the main project's
+     * standard [prepareNonAnimatedImageView] + [setNonAnimatedImage] pipeline. This avoids the
+     * fork's overlay/transitionDivider approach (which doesn't fit the main architecture).
+     */
+    private fun swapToEnhancedFile(file: java.io.File) {
+        val cfg = config ?: return
+        try {
+            val stream = enhancedImageSourceFactory?.invoke(file)
+                ?: Buffer().readFrom(file.inputStream())
+            isSettingProcessedImage = true
+            currentLoadedPath = file.absolutePath
+            prepareNonAnimatedImageView()
+            setNonAnimatedImage(stream, cfg)
+        } catch (e: Exception) {
+            logcat(LogPriority.WARN) { "ReaderPageImageView: failed to swap enhanced image: ${e.message}" }
+            isSettingProcessedImage = false
+        }
     }
 
     private fun prepareNonAnimatedImageView() {
@@ -340,6 +558,25 @@ open class ReaderPageImageView @JvmOverloads constructor(
         return (this * context.animatorDurationScale).toInt().coerceAtLeast(1)
     }
 
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        // Cancel any pending enhancement polling/requests for this page.
+        processingJob?.cancel()
+        processingJob = null
+
+        val mId = readerPage?.chapter?.chapter?.manga_id ?: mangaId
+        val cId = readerPage?.chapter?.chapter?.id ?: chapterId
+        val pIdx = readerPage?.index ?: pageIndex
+        if (mId != -1L && cId != -1L && pIdx >= 0) {
+            ImageEnhancer.cancel(mId, cId, pIdx, enhancementVariant())
+        }
+
+        enhancedBitmap?.recycle()
+        enhancedBitmap = null
+        isSettingProcessedImage = false
+        currentLoadedPath = null
+    }
+
     /**
      * All of the config except [zoomDuration] will only be used for non-animated image.
      */
@@ -364,6 +601,15 @@ open class ReaderPageImageView @JvmOverloads constructor(
         val isSplitScreen: Boolean,
         val insets: WindowInsets?,
     )
+
+    companion object {
+        /**
+         * Global index of the page the user is currently viewing. Used by individual view instances
+         * to decide whether to self-heal stale enhanced cache entries and to skip reprioritization
+         * for non-active pages.
+         */
+        var currentGlobalPageIndex: Int = -1
+    }
 }
 
 private const val MAX_ZOOM_SCALE = 5F

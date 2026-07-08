@@ -1,4 +1,4 @@
-﻿package eu.kanade.tachiyomi.data.preference
+package eu.kanade.tachiyomi.data.preference
 
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
@@ -34,9 +34,8 @@ fun <T> Preference<T>.changesIn(scope: CoroutineScope, block: (value: T) -> Unit
     return changes()
         .onEach { block(it) }
         .launchIn(scope)
-
-    fun showMangaScanlatorBranches() = preferenceStore.getBoolean(Keys.showMangaScanlatorBranches, true)
 }
+
 
 fun Preference<Boolean>.toggle() = set(!get())
 
@@ -424,6 +423,8 @@ class PreferencesHelper(val context: Context, val preferenceStore: PreferenceSto
     fun sortChapterOrder() = preferenceStore.getInt(Keys.defaultChapterSortBySourceOrNumber, Manga.CHAPTER_SORTING_SOURCE)
 
     fun hideChapterTitlesByDefault() = preferenceStore.getBoolean(Keys.hideChapterTitles, false)
+
+    fun showMangaScanlatorBranches() = preferenceStore.getBoolean(Keys.showMangaScanlatorBranches, true)
 
     fun chaptersDescAsDefault() = preferenceStore.getBoolean(Keys.chaptersDescAsDefault, true)
 

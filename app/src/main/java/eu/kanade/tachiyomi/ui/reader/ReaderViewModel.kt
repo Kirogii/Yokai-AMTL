@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.ui.reader
+﻿package eu.kanade.tachiyomi.ui.reader
 
 import android.app.Application
 import android.graphics.BitmapFactory
@@ -244,7 +244,8 @@ class ReaderViewModel(
                     loader = ChapterLoader(context, downloadManager, downloadProvider, manga, source)
 
                     chapterList = getChapterList()
-                    loadChapter(loader!!, chapterList!!.first { chapterId == it.chapter.id })
+                    ImageEnhancer.reset(chapterList!!.first { chapterId == it.chapter.id }.chapter.last_page_read)
+            loadChapter(loader!!, chapterList!!.first { chapterId == it.chapter.id })
                     Result.success(true)
                 } else {
                     // Unlikely but okay
@@ -428,6 +429,7 @@ class ReaderViewModel(
 
         Logger.d { "Loading adjacent ${chapter.chapter.url}" }
         var lastPage: Int? = if (chapter.chapter.pages_left <= 1) 0 else chapter.chapter.last_page_read
+        ImageEnhancer.reset(lastPage ?: chapter.last_page_read)
         mutableState.update { it.copy(isLoadingAdjacentChapter = true) }
         try {
             withIOContext {
@@ -1042,3 +1044,5 @@ class ReaderViewModel(
         data class ShareTrackingError(val errors: List<Pair<TrackService, String?>>) : Event()
     }
 }
+
+

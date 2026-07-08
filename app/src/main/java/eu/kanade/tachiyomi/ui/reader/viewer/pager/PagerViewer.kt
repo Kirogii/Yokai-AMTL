@@ -1,4 +1,4 @@
-package eu.kanade.tachiyomi.ui.reader.viewer.pager
+﻿package eu.kanade.tachiyomi.ui.reader.viewer.pager
 
 import android.graphics.PointF
 import android.graphics.Bitmap
@@ -28,6 +28,7 @@ import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.injectLazy
 import yokai.domain.ai.TranslationService
@@ -41,6 +42,7 @@ import java.io.ByteArrayOutputStream
 abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
 
     val downloadManager: DownloadManager by injectLazy()
+    val preferences: eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences by injectLazy()
 
     val scope = MainScope()
 
@@ -127,7 +129,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
     init {
         pager.isVisible = false // Don't layout the pager yet
         pager.layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
-        pager.offscreenPageLimit = 1
+        pager.offscreenPageLimit = if (preferences.realCuganEnabled().get()) preferences.realCuganPreloadSize().get() else 2
         pager.id = R.id.reader_pager
         pager.adapter = adapter
         pager.addOnPageChangeListener(pagerListener)
@@ -336,7 +338,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
     }
 
     fun updateShifting(page: ReaderPage? = null) {
-        adapter.pageToShift = page ?: adapter.joinedItems[pager.currentItem].first as? ReaderPage
+        adapter.pageToShift = page ?: adapter.joinedItems.getOrElse(pager.currentItem) { return }.first as? ReaderPage
     }
 
     fun getShiftedPage(): ReaderPage? = adapter.pageToShift
@@ -464,7 +466,9 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
      * changed.
      */
     private fun refreshAdapter() {
+        val preferences: eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences by uy.kohesive.injekt.injectLazy()
         val currentItem = pager.currentItem
+        pager.offscreenPageLimit = if (preferences.realCuganEnabled().get()) preferences.realCuganPreloadSize().get() else 2
         pager.adapter = adapter
         pager.setCurrentItem(currentItem, false)
     }
@@ -634,13 +638,15 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
 
                         page.chapter.setTranslatedPage(page.index, translatedBytes)
                         page.stream = { ByteArrayInputStream(translatedBytes) }
+
                         // Reset status to trigger PagerPageHolder reload
                         page.status =
                             eu.kanade.tachiyomi.source.model.Page.State.LOAD_PAGE
+                        kotlinx.coroutines.yield() // ensure LOAD_PAGE emitted before READY
                         page.status =
                             eu.kanade.tachiyomi.source.model.Page.State.READY
 
-                        // Notify pager adapter to refresh this page's view immediately
+                        // Refresh this specific page in the pager
                         val pos = adapter.joinedItems.indexOfFirst {
                             it.first == page || it.second == page
                         }
@@ -705,3 +711,5 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
         return null
     }
 }
+
+

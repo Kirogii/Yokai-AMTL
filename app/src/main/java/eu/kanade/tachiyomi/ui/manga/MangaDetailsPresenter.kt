@@ -1,4 +1,4 @@
-﻿package eu.kanade.tachiyomi.ui.manga
+package eu.kanade.tachiyomi.ui.manga
 
 import android.app.Application
 import android.graphics.Bitmap
@@ -186,7 +186,7 @@ class MangaDetailsPresenter(
     var scanlatorChapterCounts: Map<String, Int> = emptyMap()
     var selectedScanlator: String? = null
 
-    val showScanlatorBranches: Boolean get() = uiPreferences.showMangaScanlatorBranches()
+    val showScanlatorBranches: Boolean get() = uiPreferences.showMangaScanlatorBranches().get()
 
     override val progressJobs: MutableMap<Download, Job> = mutableMapOf()
     override val queueListenerScope get() = presenterScope

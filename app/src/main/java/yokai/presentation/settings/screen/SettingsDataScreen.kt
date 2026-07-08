@@ -345,10 +345,10 @@ object SettingsDataScreen : ComposableSettings {
         val cloudBackupUri by backupPreferences.cloudBackupUri().collectAsState()
         val cloudBackupSubtitle = remember(cloudBackupUri) {
             if (cloudBackupUri.isBlank()) {
-                stringResource(MR.strings.cloud_backup_folder_not_set)
+                context.getString(MR.strings.cloud_backup_folder_not_set)
             } else {
                 UniFile.fromUri(context, cloudBackupUri.toUri())?.filePath
-                    ?: stringResource(MR.strings.invalid_location, cloudBackupUri)
+                    ?: context.getString(MR.strings.invalid_location, cloudBackupUri)
             }
         }
 

@@ -12,6 +12,8 @@ import eu.kanade.tachiyomi.ui.reader.model.ReaderChapter
 import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import uy.kohesive.injekt.injectLazy
 import yokai.core.archive.archiveReader
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancer
+import yokai.domain.ui.settings.ReaderPreferences
 
 /**
  * Loader used to load a chapter from the downloaded chapters.
@@ -26,6 +28,7 @@ class DownloadPageLoader(
 
     // Needed to open input streams
     private val context: Application by injectLazy()
+    private val readerPreferences: ReaderPreferences by injectLazy()
 
     private var archivePageLoader: ArchivePageLoader? = null
 
@@ -65,5 +68,9 @@ class DownloadPageLoader(
 
     override suspend fun loadPage(page: ReaderPage) {
         archivePageLoader?.loadPage(page)
+
+        if (readerPreferences.realCuganEnabled().get()) {
+            ImageEnhancer.enhance(context, page)
+        }
     }
 }

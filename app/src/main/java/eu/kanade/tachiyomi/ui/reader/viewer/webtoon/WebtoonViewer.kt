@@ -19,6 +19,7 @@ import eu.kanade.tachiyomi.ui.reader.model.ReaderPage
 import eu.kanade.tachiyomi.ui.reader.model.TranslateStubPage
 import eu.kanade.tachiyomi.ui.reader.model.ViewerChapters
 import eu.kanade.tachiyomi.ui.reader.viewer.BaseViewer
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancer
 import eu.kanade.tachiyomi.ui.reader.viewer.ReaderTranslatePageView
 import eu.kanade.tachiyomi.ui.reader.viewer.ViewerNavigation
 import kotlin.math.max
@@ -26,6 +27,7 @@ import kotlin.math.min
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.injectLazy
 import yokai.domain.ai.TranslationService
@@ -203,6 +205,7 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
         val pages = page.chapter.pages ?: return
         Logger.d { "onPageSelected: ${page.number}/${pages.size}" }
         activity.onPageSelected(page, false)
+        ImageEnhancer.reprioritizeAround(page.index, page.enhancementKeySuffix)
 
         // Preload next chapter once we're within the last 5 pages of the current chapter
         val inPreloadRange = pages.size - page.number < 5
@@ -450,6 +453,7 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
                         // Reset status to trigger holder reload
                         page.status =
                             eu.kanade.tachiyomi.source.model.Page.State.LOAD_PAGE
+                        kotlinx.coroutines.yield() // ensure LOAD_PAGE emitted before READY
                         page.status =
                             eu.kanade.tachiyomi.source.model.Page.State.READY
                         translatedPages.add(page.index)
