@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -51,6 +52,18 @@ val buildTime: String by lazy {
 
 val supportedAbis = setOf("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
 
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.inputStream().use(::load)
+    }
+}
+val bundledNcnnSdkDir = rootProject.file("third_party/ncnn-20260113-android-vulkan")
+val ncnnSdkDir = providers.gradleProperty("ncnnSdkDir").orNull
+    ?: localProperties.getProperty("ncnn.sdk.dir")
+    ?: System.getenv("NCNN_SDK_DIR")
+    ?: bundledNcnnSdkDir.takeIf { it.exists() }?.absolutePath
+
 android {
     defaultConfig {
         applicationId = "eu.kanade.tachiyomi"
@@ -75,6 +88,9 @@ android {
         externalNativeBuild {
             cmake {
                 this.arguments("-DHAVE_LIBJXL=FALSE")
+                if (!ncnnSdkDir.isNullOrBlank()) {
+                    arguments += "-DNCNN_SDK_DIR=$ncnnSdkDir"
+                }
             }
         }
     }

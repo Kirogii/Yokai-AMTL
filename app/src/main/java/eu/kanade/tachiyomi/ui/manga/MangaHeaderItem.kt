@@ -7,12 +7,15 @@ import eu.davidea.flexibleadapter.items.AbstractFlexibleItem
 import eu.davidea.flexibleadapter.items.IFlexible
 import eu.kanade.tachiyomi.R
 
-class MangaHeaderItem(val mangaId: Long, private var startExpanded: Boolean) :
-    AbstractFlexibleItem<MangaHeaderHolder>() {
+class MangaHeaderItem(
+    val mangaId: Long,
+    private var startExpanded: Boolean,
+) : AbstractFlexibleItem<MangaHeaderHolder>() {
 
     var isChapterHeader = false
     var isLocked = false
     var isTablet = false
+
 
     override fun getLayoutRes(): Int {
         return if (isChapterHeader) R.layout.chapter_header_item else R.layout.manga_header_item
@@ -26,7 +29,10 @@ class MangaHeaderItem(val mangaId: Long, private var startExpanded: Boolean) :
         return false
     }
 
-    override fun createViewHolder(view: View, adapter: FlexibleAdapter<IFlexible<RecyclerView.ViewHolder>>): MangaHeaderHolder {
+    override fun createViewHolder(
+        view: View,
+        adapter: FlexibleAdapter<IFlexible<RecyclerView.ViewHolder>>,
+    ): MangaHeaderHolder {
         return MangaHeaderHolder(view, adapter as MangaDetailsAdapter, startExpanded, isTablet)
     }
 

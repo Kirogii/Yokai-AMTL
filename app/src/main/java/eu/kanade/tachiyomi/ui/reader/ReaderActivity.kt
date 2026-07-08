@@ -1506,6 +1506,9 @@ class ReaderActivity : BaseActivity<ReaderActivityBinding>() {
         viewModel.onPageSelected(page, hasExtraPage)
         val pages = page.chapter.pages ?: return
 
+        // Skip invalid pages (e.g., TranslateStubPage with index -1)
+        if (page.index < 0) return
+
         val currentPage = if (hasExtraPage) {
             val invertDoublePage = (viewer as? PagerViewer)?.config?.invertDoublePages ?: false
             if (!binding.readerNav.pageSeekbar.isRTL.xor(invertDoublePage)) {

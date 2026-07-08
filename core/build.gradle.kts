@@ -18,6 +18,7 @@ kotlin {
 
                 // Logging
                 api(libs.bundles.logging)
+                api(libs.logcat)
 
                 api(libs.okio)
 

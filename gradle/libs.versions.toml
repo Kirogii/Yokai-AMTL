@@ -12,6 +12,7 @@ sqlite = "2.4.0"
 sqldelight = "2.0.2"
 junit = "5.11.3"
 kermit = "2.0.5"
+logcat = "0.1"
 koin = "4.0.0"
 leakcanary = "2.14"
 voyager = "1.1.0-beta03"
@@ -44,6 +45,7 @@ flexible-adapter = { module = "com.github.arkon.FlexibleAdapter:flexible-adapter
 image-decoder = { module = "com.github.tachiyomiorg:image-decoder", version = "41c059e540" }
 
 kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
+logcat = { module = "com.squareup.logcat:logcat", version.ref = "logcat" }
 
 koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin" }
 koin-core = { module = "io.insert-koin:koin-core" }

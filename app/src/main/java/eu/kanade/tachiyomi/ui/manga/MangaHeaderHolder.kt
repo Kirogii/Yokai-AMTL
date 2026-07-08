@@ -164,7 +164,7 @@ class MangaHeaderHolder(
             }
             mangaSummary.customSelectionActionModeCallback = adapter.delegate.customActionMode(mangaSummary)
             applyBlur()
-            mangaCover.setOnClickListener { adapter.delegate.zoomImageFromThumb(coverCard) }
+            mangaCover.setOnClickListener { adapter.delegate.zoomImageFromThumb(mangaCover) }
             trackButton.setOnClickListener { adapter.delegate.showTrackingSheet() }
             if (startExpanded) {
                 expandDesc()
@@ -324,6 +324,7 @@ class MangaHeaderHolder(
         } else {
             binding.mangaAuthor.text = listOfNotNull(manga.author?.trim(), manga.artist?.trim()).joinToString(", ")
         }
+
         setDescription()
 
         binding.mangaSummary.post {
@@ -389,6 +390,7 @@ class MangaHeaderHolder(
             )
             checked(tracked)
         }
+
 
         with(binding.startReadingButton) {
             val nextChapter = presenter.getNextUnreadChapter()

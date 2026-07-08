@@ -269,6 +269,7 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
         if (item != null && currentPage != item) {
             currentPage = item
             when (item) {
+                is TranslateStubPage -> {} // Skip AI translate stub
                 is ReaderPage -> onPageSelected(item, allowPreload)
                 is ChapterTransition -> onTransitionSelected(item)
             }

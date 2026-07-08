@@ -229,6 +229,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
                 }
             currentPage = pageF
             when (pageF) {
+                is TranslateStubPage -> {} // Skip AI translate stub
                 is ReaderPage -> {
                     onReaderPageSelected(pageF, allowPreload, page.second is ReaderPage, forward)
                 }
