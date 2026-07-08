@@ -578,6 +578,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
         if (!isTranslatingAll) return
 
         val chapterId = translatingChapterId ?: return
+        // Collect pages sorted by index (1, 2, 3...) for sequential top-to-bottom processing
         val pagesToTranslate = adapter.joinedItems
             .mapNotNull { item ->
                 val page = when {
@@ -591,6 +592,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
                         it.index !in translatedPages
                 }
             }
+            .sortedBy { it.index }
 
         for (page in pagesToTranslate) {
             // Check for chapter transition before each page
@@ -633,6 +635,14 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
                             eu.kanade.tachiyomi.source.model.Page.State.LOAD_PAGE
                         page.status =
                             eu.kanade.tachiyomi.source.model.Page.State.READY
+
+                        // Notify pager adapter to refresh this page's view immediately
+                        val pos = adapter.joinedItems.indexOfFirst {
+                            it.first == page || it.second == page
+                        }
+                        if (pos >= 0) {
+                            pager.post { pager.adapter?.notifyDataSetChanged() }
+                        }
 
                         stubView.setStatus("Translated page ${page.number}")
                     },

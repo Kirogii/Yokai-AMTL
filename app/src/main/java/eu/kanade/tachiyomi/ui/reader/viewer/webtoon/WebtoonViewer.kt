@@ -411,12 +411,14 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
             return
         }
 
+        // Collect pages sorted by index (1, 2, 3...) for sequential top-to-bottom processing
         val pages = adapter.items
             .filterIsInstance(ReaderPage::class.java)
             .filter { it !is TranslateStubPage }
             .filter { it.chapter.chapter.id == translatingChapterId }
             .filter { it.status == eu.kanade.tachiyomi.source.model.Page.State.READY }
             .filter { !translatedPages.contains(it.index) }
+            .sortedBy { it.index }
 
         if (pages.isEmpty()) return
 
@@ -448,10 +450,10 @@ class WebtoonViewer(val activity: ReaderActivity, val hasMargins: Boolean = fals
                             eu.kanade.tachiyomi.source.model.Page.State.READY
                         translatedPages.add(page.index)
 
-                        val pos = adapter.items.indexOf(page)
-                        if (pos != -1) adapter.notifyItemChanged(pos)
-
                         newTranslations++
+                        // Refresh this specific item so the user sees the translation immediately
+                        val pos = adapter.items.indexOf(page)
+                        if (pos != -1) recycler.post { adapter.notifyItemChanged(pos) }
                         stubView?.setStatus("Auto-translating... ${translatedPages.size} pages done")
                     },
                     onFailure = { error ->
