@@ -39,7 +39,7 @@ jobs:
 
       - name: Build Release APK
         if: github.event.inputs.beta != 'true'
-        run: ./gradlew assembleStandardRelease
+        run: ./gradlew assembleRelease
 
       - name: Build Beta APK
         if: github.event.inputs.beta == 'true'
