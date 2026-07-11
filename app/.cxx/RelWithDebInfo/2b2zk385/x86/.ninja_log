@@ -1,0 +1,25 @@
+# ninja log v5
+12	1911	8052587652185279	CMakeFiles/waifu2x-jni.dir/waifu2x_jni.cpp.o	e42898928102fb9a
+6	2061	8052587653675625	CMakeFiles/waifu2x-jni.dir/anime4k.cpp.o	2be0a17621da02c2
+0	2165	8052587654731192	CMakeFiles/waifu2x-jni.dir/waifu2x.cpp.o	d50909a3ec841d46
+2166	2413	8052587657107188	C:/Users/Admin/Downloads/yokai-amtl/app/build/intermediates/cxx/RelWithDebInfo/2b2zk385/obj/x86/libwaifu2x-jni.so	d3b76ea0fddb7953
+1	11	0	clean	783ee98371267ada
+0	8	0	clean	783ee98371267ada
+0	8	0	clean	783ee98371267ada
+0	8	0	clean	783ee98371267ada
+0	9	0	clean	783ee98371267ada
+0	10	0	clean	783ee98371267ada
+19	1993	8053144308148647	CMakeFiles/waifu2x-jni.dir/waifu2x_jni.cpp.o	e42898928102fb9a
+7	2126	8053144309468948	CMakeFiles/waifu2x-jni.dir/anime4k.cpp.o	2be0a17621da02c2
+13	2287	8053144310889276	CMakeFiles/waifu2x-jni.dir/waifu2x.cpp.o	d50909a3ec841d46
+2288	2749	8053144315613298	C:/Users/Admin/Downloads/yokai-amtl/app/build/intermediates/cxx/RelWithDebInfo/2b2zk385/obj/x86/libwaifu2x-jni.so	d3b76ea0fddb7953
+1	11	0	clean	783ee98371267ada
+0	8	0	clean	783ee98371267ada
+0	9	0	clean	783ee98371267ada
+0	8	0	clean	783ee98371267ada
+0	9	0	clean	783ee98371267ada
+1	9	0	clean	783ee98371267ada
+21	2160	8053147554596639	CMakeFiles/waifu2x-jni.dir/waifu2x_jni.cpp.o	e42898928102fb9a
+7	2297	8053147555956945	CMakeFiles/waifu2x-jni.dir/anime4k.cpp.o	2be0a17621da02c2
+14	2400	8053147556987177	CMakeFiles/waifu2x-jni.dir/waifu2x.cpp.o	d50909a3ec841d46
+2400	2787	8053147560738032	C:/Users/Admin/Downloads/yokai-amtl/app/build/intermediates/cxx/RelWithDebInfo/2b2zk385/obj/x86/libwaifu2x-jni.so	d3b76ea0fddb7953

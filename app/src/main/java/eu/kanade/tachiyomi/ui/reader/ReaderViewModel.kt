@@ -88,6 +88,7 @@ import yokai.domain.storage.StorageManager
 import yokai.domain.track.interactor.GetTrack
 import yokai.i18n.MR
 import yokai.util.lang.getString
+import eu.kanade.tachiyomi.util.waifu2x.ImageEnhancer
 
 /**
  * Presenter used by the activity to perform background operations.
@@ -429,7 +430,7 @@ class ReaderViewModel(
 
         Logger.d { "Loading adjacent ${chapter.chapter.url}" }
         var lastPage: Int? = if (chapter.chapter.pages_left <= 1) 0 else chapter.chapter.last_page_read
-        ImageEnhancer.reset(lastPage ?: chapter.last_page_read)
+        ImageEnhancer.reset(lastPage ?: chapter.chapter.last_page_read)
         mutableState.update { it.copy(isLoadingAdjacentChapter = true) }
         try {
             withIOContext {

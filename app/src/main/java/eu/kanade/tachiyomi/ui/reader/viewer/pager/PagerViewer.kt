@@ -32,6 +32,7 @@ import kotlinx.coroutines.yield
 import uy.kohesive.injekt.Injekt
 import uy.kohesive.injekt.injectLazy
 import yokai.domain.ai.TranslationService
+import yokai.domain.ui.settings.ReaderPreferences
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
@@ -42,7 +43,7 @@ import java.io.ByteArrayOutputStream
 abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
 
     val downloadManager: DownloadManager by injectLazy()
-    val preferences: eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences by injectLazy()
+    val preferences: ReaderPreferences by injectLazy()
 
     val scope = MainScope()
 
@@ -466,7 +467,7 @@ abstract class PagerViewer(val activity: ReaderActivity) : BaseViewer {
      * changed.
      */
     private fun refreshAdapter() {
-        val preferences: eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences by uy.kohesive.injekt.injectLazy()
+        val preferences: ReaderPreferences by uy.kohesive.injekt.injectLazy()
         val currentItem = pager.currentItem
         pager.offscreenPageLimit = if (preferences.realCuganEnabled().get()) preferences.realCuganPreloadSize().get() else 2
         pager.adapter = adapter

@@ -12,7 +12,7 @@ import coil3.decode.ImageSource
 import coil3.fetch.SourceFetchResult
 import coil3.request.Options
 import coil3.request.bitmapConfig
-import eu.kanade.tachiyomi.ui.reader.setting.ReaderPreferences
+import yokai.domain.ui.settings.ReaderPreferences
 import eu.kanade.tachiyomi.core.preference.PreferenceStore
 import eu.kanade.tachiyomi.util.image.ImageFilter
 import eu.kanade.tachiyomi.util.system.GLUtil

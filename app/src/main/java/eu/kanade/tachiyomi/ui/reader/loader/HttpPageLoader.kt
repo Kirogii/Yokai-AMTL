@@ -38,7 +38,7 @@ class HttpPageLoader(
     private val readerPreferences: ReaderPreferences = Injekt.get(),
 ) : PageLoader() {
 
-    override var isLocal: Boolean = false
+    var isLocal: Boolean = false
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
