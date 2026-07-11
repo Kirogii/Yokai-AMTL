@@ -5,18 +5,12 @@
 </a>
 
 # Yōkai-AMTL
-
+### Size is 100mb+ because I tried to get upscaling which is only 99% implemented it doesnt work but it builds alongside the project
 </div>
 
 <div align="center">
 
 A free and open source manga reader
-### Builds soon maybe in a week take note tho latest commits havent been added yet
-
-| | |
-|:-:|:--|
-| <img src=".github/readme-images/Phone.png" width="250"> | <b>MangaAMTL Support Fully Implemented</b><br><br>Yokai-AMTL now has complete support for MangaAMTL.<br><br><b>Required Backend:</b><br><a href="https://github.com/Kirogii/MangaAMTL">github.com/Kirogii/MangaAMTL</a> |
-
 ### Credits
 
 Thank you to all the people who have contributed to the original yokai!
